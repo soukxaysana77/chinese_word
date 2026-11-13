@@ -898,6 +898,35 @@ button.action {
 }
 .word:focus-visible{ outline:3px solid rgba(28,176,246,.55); outline-offset:3px; }
 
+/* ---------- "this device can't read Chinese aloud" banner ---------- */
+.voice-warning{
+  display:flex; align-items:flex-start; gap:10px;
+  margin:0 0 14px;
+  padding:10px 10px 10px 12px;
+  border-radius:16px;
+  background:#fff7e6; border:2px solid #fcd9a4; color:#7c2d12;
+  font-size:14px; line-height:1.5;
+  animation:fadeUp .4s ease;
+}
+.voice-warning[hidden]{ display:none; }
+.vw-icon{ font-size:22px; line-height:1.2; flex-shrink:0; }
+.vw-body{ flex:1; min-width:0; display:flex; flex-direction:column; gap:2px; }
+.vw-body strong{ font-size:15px; color:#9a3412; }
+.vw-open{
+  align-self:flex-start; margin-top:6px;
+  padding:6px 12px; border-radius:10px;
+  background:#1cb0f6; color:#fff; font-weight:800; text-decoration:none;
+  box-shadow:0 3px 0 #0e86c2;
+}
+.vw-open[hidden]{ display:none; }
+.vw-close{
+  flex-shrink:0; width:32px; height:32px;
+  border:none; border-radius:10px; background:transparent;
+  color:#9a3412; font-size:16px; cursor:pointer;
+}
+@media (hover:hover){ .vw-close:hover{ background:#fde7c4; } }
+.vw-close:focus-visible{ outline:3px solid rgba(28,176,246,.55); outline-offset:2px; }
+
 /* a placed block jumps when its sound plays (added by hopBlock() in JS) */
 .word.hop{ animation:wordHop .5s cubic-bezier(.3,1.5,.5,1); }
 @keyframes wordHop{

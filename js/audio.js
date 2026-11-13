@@ -50,14 +50,57 @@ if ("speechSynthesis" in window) {
   speechSynthesis.onvoiceschanged = refreshVoices;
 }
 
+// Android reports "zh_CN", some engines "cmn-Hans-CN" — normalise first.
+function voiceLang(v) {
+  return (v.lang || "").toLowerCase().replace(/_/g, "-");
+}
+
+function isChineseVoice(v) {
+  const lang = voiceLang(v);
+  return lang.startsWith("zh") || lang.startsWith("cmn");
+}
+
 function pickChineseVoice() {
   if (!cachedVoices.length) refreshVoices();
   return (
-    cachedVoices.find(v => v.lang === "zh-CN") ||
-    cachedVoices.find(v => v.lang && v.lang.toLowerCase().startsWith("zh")) ||
+    cachedVoices.find(v => voiceLang(v) === "zh-cn") ||
+    cachedVoices.find(isChineseVoice) ||
     null
   );
 }
+
+// Can this device read Chinese aloud? Calls back once with:
+//   "no-speech"  — the browser can't speak at all (e.g. LINE/Facebook's
+//                  in-app browser on Android)
+//   "no-chinese" — it can speak, but has no Chinese voice
+//   null         — fine, or can't tell yet (voice list never loaded): stay
+//                  quiet rather than warn by mistake
+function checkChineseVoice(callback) {
+  if (!("speechSynthesis" in window) || typeof SpeechSynthesisUtterance === "undefined") {
+    callback("no-speech");
+    return;
+  }
+  let answered = false;
+  function decide() {
+    if (answered) return;
+    const voices = speechSynthesis.getVoices();
+    if (!voices.length) return; // not loaded yet
+    answered = true;
+    callback(voices.some(isChineseVoice) ? null : "no-chinese");
+  }
+  decide();
+  speechSynthesis.addEventListener("voiceschanged", decide);
+  setTimeout(decide, 3000);
+}
+
+// Lets the page show a message when speaking fails while playing
+// (e.g. the online voice can't reach the internet).
+let speechProblemHandler = null;
+function onSpeechProblem(handler) {
+  speechProblemHandler = handler;
+}
+const SPEECH_FAILURES = ["network", "synthesis-unavailable", "synthesis-failed",
+  "language-unavailable", "voice-unavailable", "audio-hardware"];
 
 // Mobile Safari won't play any speechSynthesis audio until it's been
 // triggered once from a real tap/click. This "unlocks" it on the first
@@ -142,7 +185,14 @@ function speak(text, opts) {
     stopTalking();
     done(!cutOff);
   };
-  utterance.onerror = () => { stopTalking(); done(false); };
+  utterance.onerror = (e) => {
+    stopTalking();
+    // "interrupted"/"canceled" just mean a newer speak() took over
+    if (e && SPEECH_FAILURES.includes(e.error) && speechProblemHandler) {
+      speechProblemHandler(e.error === "network" ? "offline" : "failed");
+    }
+    done(false);
+  };
 
   speechSynthesis.speak(utterance);
 }

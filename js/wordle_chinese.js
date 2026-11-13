@@ -91,6 +91,16 @@ const translations = {
     playAgain: "🔄 Play Again",
     home: "🏠 Home",
     homeShort: "Home",
+    voiceNoSpeechTitle: "This browser can't read aloud",
+    voiceNoSpeechText: "It doesn't support speech. If you opened this from LINE or Facebook, open it in Chrome or Safari instead.",
+    voiceNoChineseTitle: "No Chinese voice on this device",
+    voiceNoChineseText: "You can still play, but you won't hear Chinese read aloud. Try Chrome, or add a Chinese voice in your device's settings.",
+    voiceOfflineTitle: "Reading aloud needs the internet",
+    voiceOfflineText: "This device uses an online Chinese voice. Check your connection, then tap 🔊 again.",
+    voiceFailedTitle: "The Chinese voice isn't working",
+    voiceFailedText: "Tap 🔊 again, or open the game in Chrome or Safari.",
+    voiceOpenBrowser: "Open in browser",
+    voiceClose: "Close",
     next: "➡ Next",
     tutorialSkip: "Skip Tutorial",
     tutorialStep: "Step {n} / {total}",
@@ -121,6 +131,16 @@ const translations = {
     playAgain: "🔄 เล่นอีกครั้ง",
     home: "🏠 หน้าหลัก",
     homeShort: "หน้าหลัก",
+    voiceNoSpeechTitle: "เบราว์เซอร์นี้อ่านออกเสียงไม่ได้",
+    voiceNoSpeechText: "ถ้าเปิดจาก LINE หรือ Facebook ให้เปิดใน Chrome หรือ Safari แทน",
+    voiceNoChineseTitle: "เครื่องนี้ไม่มีเสียงภาษาจีน",
+    voiceNoChineseText: "เกมยังเล่นได้ แต่จะไม่ได้ยินเสียงอ่านภาษาจีน ลองเปิดใน Chrome หรือติดตั้งเสียงภาษาจีนในการตั้งค่าของเครื่อง",
+    voiceOfflineTitle: "เสียงอ่านต้องใช้อินเทอร์เน็ต",
+    voiceOfflineText: "เครื่องนี้ใช้เสียงภาษาจีนแบบออนไลน์ ตรวจสอบอินเทอร์เน็ตแล้วกด 🔊 อีกครั้ง",
+    voiceFailedTitle: "เสียงอ่านภาษาจีนใช้ไม่ได้",
+    voiceFailedText: "ลองกด 🔊 อีกครั้ง หรือเปิดเกมใน Chrome หรือ Safari",
+    voiceOpenBrowser: "เปิดในเบราว์เซอร์",
+    voiceClose: "ปิด",
     next: "➡ ต่อไป",
     tutorialSkip: "ข้ามการสอน",
     tutorialStep: "ขั้นที่ {n} / {total}",
@@ -185,6 +205,7 @@ function updateLanguage() {
   updateAnswerArea();
   updateLevelBadge();
   renderTutorial();
+  renderVoiceWarning();
 
   if (document.getElementById("resultScreen").style.display === "block") {
     document.getElementById("resultSubtitle").textContent =
@@ -785,6 +806,58 @@ window.addEventListener(APP_LANG_EVENT, function (e) {
   currentLanguage = e.detail;
   updateLanguage();
 });
+
+/* ---------- "this device can't read Chinese aloud" banner ---------- */
+
+const VOICE_WARNING_CLOSED_KEY = "chineseWordVoiceWarningClosed";
+const VOICE_WARNING_NAMES = { "no-speech": "NoSpeech", "no-chinese": "NoChinese", offline: "Offline", failed: "Failed" };
+let voiceWarningKind = null; // null, or a key of VOICE_WARNING_NAMES
+
+function showVoiceWarning(kind) {
+  if (!kind || !VOICE_WARNING_NAMES[kind]) return;
+  try {
+    if (sessionStorage.getItem(VOICE_WARNING_CLOSED_KEY) === kind) return; // closed earlier
+  } catch (e) {}
+  voiceWarningKind = kind;
+  renderVoiceWarning();
+}
+
+function renderVoiceWarning() {
+  const box = document.getElementById("voiceWarning");
+  if (!voiceWarningKind) {
+    box.hidden = true;
+    return;
+  }
+  const t = translations[currentLanguage];
+  const name = VOICE_WARNING_NAMES[voiceWarningKind];
+  document.getElementById("voiceWarningTitle").textContent = t["voice" + name + "Title"];
+  document.getElementById("voiceWarningText").textContent = t["voice" + name + "Text"];
+  document.getElementById("voiceWarningClose").setAttribute("aria-label", t.voiceClose);
+
+  // LINE's in-app browser opens a link in the phone's real browser when it
+  // carries ?openExternalBrowser=1
+  const open = document.getElementById("voiceWarningOpen");
+  const inLine = /\bLine\//i.test(navigator.userAgent);
+  if (voiceWarningKind === "no-speech" && inLine) {
+    const url = new URL(location.href);
+    url.searchParams.set("openExternalBrowser", "1");
+    open.href = url.href;
+    open.textContent = t.voiceOpenBrowser;
+    open.hidden = false;
+  } else {
+    open.hidden = true;
+  }
+  box.hidden = false;
+}
+
+document.getElementById("voiceWarningClose").addEventListener("click", function () {
+  try { sessionStorage.setItem(VOICE_WARNING_CLOSED_KEY, voiceWarningKind); } catch (e) {}
+  voiceWarningKind = null;
+  renderVoiceWarning();
+});
+
+checkChineseVoice(showVoiceWarning); // missing voice: tell the player up front
+onSpeechProblem(showVoiceWarning);   // voice fails while playing (e.g. offline)
 
 // Text first — it doesn't need the word list, so the tutorial shows in the
 // right language straight away.
