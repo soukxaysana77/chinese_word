@@ -261,6 +261,11 @@ function renderList() {
 
     const actions = document.createElement("div");
     actions.className = "q-actions";
+    // the game shuffles each level, so open it with this sentence first
+    const tryLink = document.createElement("a");
+    tryLink.className = "btn btn-secondary btn-small";
+    tryLink.href = "./play.html?try=" + encodeURIComponent(q.chinese);
+    tryLink.textContent = "▶ ทดลอง";
     const editBtn = document.createElement("button");
     editBtn.type = "button";
     editBtn.className = "btn btn-secondary btn-small";
@@ -271,7 +276,7 @@ function renderList() {
     delBtn.className = "btn btn-danger btn-small";
     delBtn.textContent = "🗑 ลบ";
     delBtn.addEventListener("click", function () { deleteQuestion(item.i); });
-    actions.append(editBtn, delBtn);
+    actions.append(tryLink, editBtn, delBtn);
 
     li.append(num, body, actions);
     list.appendChild(li);

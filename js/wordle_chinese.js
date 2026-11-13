@@ -48,6 +48,10 @@ function shuffleArray(arr) {
   return a;
 }
 
+// admin.html's "▶ ทดลอง" opens play.html?try=<sentence>: start with that
+// sentence (at its level) instead of a random one. Only for the first round.
+let trySentence = new URLSearchParams(location.search).get("try");
+
 function buildQuestionOrder() {
   const order = [];
   for (let lvl = 1; lvl <= TOTAL_LEVELS; lvl++) {
@@ -55,6 +59,15 @@ function buildQuestionOrder() {
     order.push(...levelQs);
   }
   questions = order;
+
+  if (trySentence) {
+    const i = order.findIndex(q => q.chinese === trySentence);
+    if (i !== -1) {
+      const first = order[i];
+      questions = [first].concat(order.filter((q, k) => k !== i && q.level >= first.level));
+    }
+    trySentence = null;
+  }
 }
 
 let currentLanguage = "th";
@@ -649,6 +662,8 @@ updateLanguage();
 
 // The word list may come from the server (js/question-store.js).
 questionsReady.then(function () {
+  const isTryRun = !!trySentence; // admin preview: skip the tutorial
   buildQuestionOrder();
+  if (isTryRun) closeTutorial();
   loadQuestion();
 });

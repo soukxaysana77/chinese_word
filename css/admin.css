@@ -163,8 +163,8 @@ input, select, textarea{ font-family:inherit; }
 /* phones: buttons go under the sentence */
 @media (max-width:520px){
   .q-item{ flex-wrap:wrap; }
-  .q-actions{ flex-direction:row; width:100%; padding-left:42px; }
-  .q-actions .btn{ flex:1; }
+  .q-actions{ flex-direction:row; width:100%; gap:6px; }
+  .q-actions .btn{ flex:1; padding:6px 6px; white-space:nowrap; }
 }
 
 /* ---------- server not set up ---------- */
