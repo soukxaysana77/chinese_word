@@ -25,7 +25,11 @@ function isValidQuestion(q) {
     typeof q.chinese === "string" &&
     typeof q.pinyin === "string" &&
     typeof q.en === "string" &&
-    typeof q.th === "string";
+    typeof q.th === "string" &&
+    // optional: other block orders that are also correct
+    (q.alts === undefined || (Array.isArray(q.alts) && q.alts.every(function (alt) {
+      return Array.isArray(alt) && alt.length === q.answer.length;
+    })));
 }
 
 function isValidQuestionList(list) {

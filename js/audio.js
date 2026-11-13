@@ -107,6 +107,8 @@ const SPEECH_FAILURES = ["network", "synthesis-unavailable", "synthesis-failed",
 // touch so the later automatic speak() calls actually work.
 let speechUnlocked = false;
 function unlockSpeech() {
+  // recorded clips play through Web Audio, which also needs a first tap
+  try { getAudioCtx(); } catch (e) {}
   if (speechUnlocked || !("speechSynthesis" in window)) return;
   speechUnlocked = true;
   try {
@@ -124,17 +126,125 @@ document.addEventListener("touchend", unlockSpeech, { once: true, capture: true 
 const measuredSpeechMs = new Map();
 let latestSpeechId = 0; // a newer speak() cuts off older ones
 
+/* ---------- recorded audio (audio/*.mp3, made by tools/make_audio.py) ---------- */
+
+let clipFiles = {};            // text -> file name in audio/
+const clipBuffers = new Map(); // text -> Promise<AudioBuffer>
+let currentClip = null;        // { speechId, source, done } while a clip plays
+
+// Resolves to true when recorded clips are available. Fails quietly (e.g.
+// the page was opened straight from a file) — then the browser voice is used.
+const audioReady = (async function () {
+  try {
+    const res = await fetch("./audio/manifest.json", { cache: "no-cache" });
+    if (!res.ok) return false;
+    clipFiles = (await res.json()).files || {};
+    return Object.keys(clipFiles).length > 0;
+  } catch (e) {
+    return false;
+  }
+})();
+
+function hasClip(text) {
+  return Object.prototype.hasOwnProperty.call(clipFiles, text);
+}
+
+function loadClip(text) {
+  if (!hasClip(text)) return Promise.reject(new Error("no clip"));
+  if (!clipBuffers.has(text)) {
+    const p = fetch("./audio/" + clipFiles[text])
+      .then(res => {
+        if (!res.ok) throw new Error("HTTP " + res.status);
+        return res.arrayBuffer();
+      })
+      // callback form: older Safari has no promise version
+      .then(data => new Promise((resolve, reject) => getAudioCtx().decodeAudioData(data, resolve, reject)));
+    p.catch(() => clipBuffers.delete(text)); // try again next time
+    clipBuffers.set(text, p);
+  }
+  return clipBuffers.get(text);
+}
+
+// Start downloading the clips a question needs, so they play without delay.
+function preloadClips(texts) {
+  texts.forEach(t => { if (hasClip(t)) loadClip(t).catch(() => {}); });
+}
+
+function stopClip() {
+  if (!currentClip) return;
+  const clip = currentClip;
+  currentClip = null;
+  if (clip.source) {
+    try { clip.source.onended = null; clip.source.stop(); } catch (e) {}
+  }
+  clip.done(false);
+}
+
+function playClip(text, opts, speechId) {
+  let finished = false;
+  function done(ok) {
+    if (finished) return;
+    finished = true;
+    if (currentClip && currentClip.speechId === speechId) currentClip = null;
+    stopTalking();
+    if (opts.onDone) opts.onDone(ok);
+  }
+  currentClip = { speechId: speechId, source: null, done: done };
+
+  loadClip(text).then(function (buffer) {
+    const ctx = getAudioCtx();
+    if (ctx.state === "running") return buffer;
+    // sound may still be switching on after the first tap — wait a moment;
+    // if it never does (no tap on this page yet), stay silent
+    return Promise.race([
+      ctx.resume().then(() => buffer),
+      new Promise((resolve, reject) => setTimeout(reject, 400, new Error("audio locked")))
+    ]);
+  }).then(function (buffer) {
+    if (finished || speechId !== latestSpeechId) return; // replaced while loading
+    const ctx = getAudioCtx();
+    const source = ctx.createBufferSource();
+    source.buffer = buffer;
+    source.connect(ctx.destination);
+    source.onended = function () { done(true); };
+    currentClip.source = source;
+    source.start();
+    measuredSpeechMs.set(text, buffer.duration * 1000);
+    startTalking();
+    if (opts.onStart) opts.onStart();
+  }).catch(function (err) {
+    if (finished || speechId !== latestSpeechId) return;
+    if (err && err.message === "audio locked") {
+      done(false);
+      return;
+    }
+    // file missing or broken: use the browser's voice for this one
+    finished = true;
+    if (currentClip && currentClip.speechId === speechId) currentClip = null;
+    speakWithVoice(text, opts, speechId);
+  });
+}
+
 // opts (all optional):
-//   onStart()            the voice actually started
+//   onStart()            the sound actually started
 //   onBoundary(charIdx)  the voice reports it reached this character
-//                        (only some voices do — phones, Safari, local voices)
+//                        (only some browser voices do)
 //   onDone(ok)           runs once at the end; ok = false if it was cut off,
 //                        failed, or the device never reported the end
-// Some devices never report start/end (no Chinese voice, speech blocked), so
-// onDone still runs if the voice hasn't started within 2.5s, or once it has
-// run well past how long the text should take.
+// Plays the recorded clip when there is one, otherwise the browser's voice.
 function speak(text, opts) {
   opts = opts || {};
+  const speechId = ++latestSpeechId;
+  stopClip();
+  if ("speechSynthesis" in window) speechSynthesis.cancel();
+  if (hasClip(text)) playClip(text, opts, speechId);
+  else speakWithVoice(text, opts, speechId);
+}
+
+// Browser text-to-speech. Some devices never report start/end (no Chinese
+// voice, speech blocked), so onDone still runs if the voice hasn't started
+// within 2.5s, or once it has run well past how long the text should take.
+function speakWithVoice(text, opts, speechId) {
   let finished = false;
   let fallbackTimer = null;
   let startedAt = 0;
@@ -147,12 +257,15 @@ function speak(text, opts) {
   if (opts.onDone) fallbackTimer = setTimeout(done, 2500, false);
 
   if (!("speechSynthesis" in window)) {
+    if (speechProblemHandler) speechProblemHandler("no-speech");
     if (opts.onDone) setTimeout(done, 0, false);
     return;
   }
+  const voices = speechSynthesis.getVoices();
+  if (voices.length && !voices.some(isChineseVoice) && speechProblemHandler) {
+    speechProblemHandler("no-chinese"); // this text has no recording, and no Chinese voice to read it
+  }
 
-  speechSynthesis.cancel();
-  const speechId = ++latestSpeechId;
   const utterance = new SpeechSynthesisUtterance(text);
   utterance.lang = "zh-CN";
   utterance.rate = 0.8;

@@ -52,22 +52,25 @@ function shuffleArray(arr) {
 // sentence (at its level) instead of a random one. Only for the first round.
 let trySentence = new URLSearchParams(location.search).get("try");
 
-function buildQuestionOrder() {
-  const order = [];
-  for (let lvl = 1; lvl <= TOTAL_LEVELS; lvl++) {
-    const levelQs = shuffleArray(allQuestions.filter(q => q.level === lvl));
-    order.push(...levelQs);
-  }
-  questions = order;
+// Each round plays this many random sentences from each level (the list has
+// far more than that, so every round is different).
+const QUESTIONS_PER_LEVEL = 6;
 
+function buildQuestionOrder() {
+  let first = null;
   if (trySentence) {
-    const i = order.findIndex(q => q.chinese === trySentence);
-    if (i !== -1) {
-      const first = order[i];
-      questions = [first].concat(order.filter((q, k) => k !== i && q.level >= first.level));
-    }
+    first = allQuestions.find(q => q.chinese === trySentence) || null;
     trySentence = null;
   }
+
+  const order = [];
+  for (let lvl = 1; lvl <= TOTAL_LEVELS; lvl++) {
+    if (first && lvl < first.level) continue; // preview starts at its own level
+    let levelQs = shuffleArray(allQuestions.filter(q => q.level === lvl));
+    if (first && lvl === first.level) levelQs = [first].concat(levelQs.filter(q => q !== first));
+    order.push(...levelQs.slice(0, QUESTIONS_PER_LEVEL));
+  }
+  questions = order;
 }
 
 let currentLanguage = "th";
@@ -279,6 +282,7 @@ function loadQuestion() {
   hideNextButton();
 
   questionShown = true;
+  preloadClips([q.chinese].concat(q.answer)); // recorded audio, if there is any
   // While the "how to play" tutorial is up, stay quiet — the question is read
   // once the player skips it or finishes it (see closeTutorial).
   if (!tutorialActive) speakQuestionSoon();
@@ -358,6 +362,37 @@ function hopBlock(el) {
 // gives the same word-by-word reading with only a short natural pause.
 const WORD_PAUSE = "，";
 
+// Pause between words when reading back recorded clips.
+const CLIP_GAP_MS = 120;
+
+// Every placed word has a recorded clip: play them one after another with a
+// short, even pause. Each block jumps exactly when its own clip starts.
+function readPlacedClips(thisCheck, blocks, words, onFinished) {
+  let i = 0;
+  function playNext() {
+    if (thisCheck !== checkCount) return; // player already moved on
+    if (i >= words.length) {
+      onFinished();
+      return;
+    }
+    const n = i++;
+    let jumped = false;
+    const jump = function () {
+      if (jumped || thisCheck !== checkCount) return;
+      jumped = true;
+      hopBlock(blocks[n]);
+    };
+    speak(words[n], {
+      onStart: jump,
+      onDone: function () {
+        jump(); // in case the sound couldn't start
+        setTimeout(playNext, i < words.length ? CLIP_GAP_MS : 0);
+      }
+    });
+  }
+  playNext();
+}
+
 // How long the read-back takes compared with the words said alone. Starts
 // as a guess and is corrected after every read-back, then remembered.
 const SPEED_RATIO_KEY = "chineseWordPausedReadRatio";
@@ -379,6 +414,10 @@ let sentenceSpeedRatio = (function () {
 function readPlacedSentence(thisCheck, onFinished) {
   const blocks = Array.from(document.querySelectorAll("#answerArea .answer-word"));
   const words = blocks.map(b => b.textContent);
+  if (words.every(hasClip)) {
+    readPlacedClips(thisCheck, blocks, words, onFinished);
+    return;
+  }
   const firstChar = [];
   let pos = 0;
   words.forEach(function (w) { firstChar.push(pos); pos += w.length + WORD_PAUSE.length; });
@@ -503,7 +542,10 @@ function checkAnswer() {
     return;
   }
 
-  const correct = selectedWords.every((word, index) => word === q.answer[index]);
+  // some sentences have more than one right order (e.g. a time word moved)
+  const accepted = [q.answer].concat(Array.isArray(q.alts) ? q.alts : []);
+  const correct = accepted.some(order =>
+    order.length === selectedWords.length && order.every((word, index) => word === selectedWords[index]));
   answered = true;
   const thisCheck = ++checkCount;
 
@@ -856,8 +898,13 @@ document.getElementById("voiceWarningClose").addEventListener("click", function 
   renderVoiceWarning();
 });
 
-checkChineseVoice(showVoiceWarning); // missing voice: tell the player up front
-onSpeechProblem(showVoiceWarning);   // voice fails while playing (e.g. offline)
+// With recorded clips, the built-in sentences don't need the browser's voice,
+// so only warn up front when there are none; a sentence without a clip still
+// warns when it actually needs the voice (see speakWithVoice).
+audioReady.then(function (hasClips) {
+  if (!hasClips) checkChineseVoice(showVoiceWarning);
+});
+onSpeechProblem(showVoiceWarning); // voice missing or failing while playing
 
 // Text first — it doesn't need the word list, so the tutorial shows in the
 // right language straight away.
@@ -868,8 +915,9 @@ updateLevelBadge();
 renderTutorial();
 updateLanguage();
 
-// The word list may come from the server (js/question-store.js).
-questionsReady.then(function () {
+// The word list may come from the server (js/question-store.js), and the
+// recorded-audio list loads alongside it (js/audio.js).
+Promise.all([questionsReady, audioReady]).then(function () {
   const isTryRun = !!trySentence; // admin preview: skip the tutorial
   buildQuestionOrder();
   if (isTryRun) closeTutorial();

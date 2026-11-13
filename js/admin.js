@@ -186,6 +186,7 @@ function render() {
   renderTabs();
   renderList();
   renderStatus();
+  renderImportButton();
 }
 
 function renderTabs() {
@@ -257,6 +258,12 @@ function renderList() {
     const meaning = document.createElement("div");
     meaning.className = "q-meaning";
     meaning.textContent = q.en ? q.th + " · " + q.en : q.th;
+    if (q.hsk) {
+      const badge = document.createElement("span");
+      badge.className = "hsk-badge";
+      badge.textContent = "HSK " + q.hsk;
+      chips.appendChild(badge);
+    }
     body.append(chips, pinyin, meaning);
 
     const actions = document.createElement("div");
@@ -416,6 +423,13 @@ $("editForm").addEventListener("submit", async function (e) {
   };
 
   const isEdit = editingIndex >= 0;
+  if (isEdit) {
+    // keep what the form doesn't show: the HSK tag, and the other correct
+    // orders as long as the words themselves didn't change
+    const before = draft[editingIndex];
+    if (before.hsk) q.hsk = before.hsk;
+    if (before.alts && before.answer.join("|") === words.join("|")) q.alts = clone(before.alts);
+  }
   const next = clone(draft);
   if (isEdit && next[editingIndex].level === level) {
     next[editingIndex] = q;
@@ -504,7 +518,9 @@ function buildQuestionsFile(list) {
           ", chinese: " + str(q.chinese) +
           ", pinyin: " + str(q.pinyin) +
           ", en: " + str(q.en) +
-          ", th: " + str(q.th) + " }"
+          ", th: " + str(q.th) +
+          (q.hsk ? ", hsk: " + q.hsk : "") +
+          (q.alts ? ", alts: [" + q.alts.map(arr).join(", ") + "]" : "") + " }"
       });
     });
   });
@@ -550,6 +566,36 @@ $("resetBtn").addEventListener("click", async function () {
 });
 
 $("builtInCount").textContent = BUILT_IN_QUESTIONS.length;
+
+// HSK 1–2 sentences that come with the game but aren't in the list yet,
+// matched by sentence text, so sentences the admin edited stay as they are.
+function missingHskSentences() {
+  const have = new Set(draft.map(q => q.chinese));
+  return BUILT_IN_QUESTIONS.filter(q => q.hsk && !have.has(q.chinese));
+}
+
+function renderImportButton() {
+  const count = missingHskSentences().length;
+  const btn = $("importHskBtn");
+  btn.disabled = count === 0;
+  btn.textContent = count
+    ? "＋ เพิ่มประโยค HSK 1–2 (" + count + " ประโยค)"
+    : "✓ มีประโยค HSK 1–2 ครบแล้ว";
+}
+
+$("importHskBtn").addEventListener("click", async function () {
+  if (busy) return;
+  const add = missingHskSentences();
+  if (!add.length) return;
+  if (!window.confirm("เพิ่มประโยค HSK 1–2 จำนวน " + add.length + " ประโยคเข้าไปในเกม?")) return;
+  const next = clone(draft);
+  add.forEach(q => next.splice(insertIndexFor(next, q.level), 0, clone(q)));
+  toast("กำลังบันทึก…");
+  const error = await saveList(next);
+  if (error) { toast(error, true); return; }
+  render();
+  toast("เพิ่มประโยค HSK 1–2 แล้ว " + add.length + " ประโยค");
+});
 
 /* ==================== toast ==================== */
 
