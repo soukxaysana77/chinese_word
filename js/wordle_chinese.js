@@ -321,19 +321,25 @@ function hopBlock(el) {
   el.classList.add("hop");
 }
 
-// How much quicker words come out inside a sentence than said alone. Starts
+// The words are read with a short pause between them. Reading each word as
+// its own clip left long gaps, because Chrome's online Chinese voice fetches
+// every clip separately; one clip with a comma between words ("我，爱你")
+// gives the same word-by-word reading with only a short natural pause.
+const WORD_PAUSE = "，";
+
+// How long the read-back takes compared with the words said alone. Starts
 // as a guess and is corrected after every read-back, then remembered.
-const SPEED_RATIO_KEY = "chineseWordSentenceSpeedRatio";
+const SPEED_RATIO_KEY = "chineseWordPausedReadRatio";
 let sentenceSpeedRatio = (function () {
   try {
     const saved = parseFloat(localStorage.getItem(SPEED_RATIO_KEY));
-    if (saved >= 0.4 && saved <= 1.2) return saved;
+    if (saved >= 0.4 && saved <= 1.6) return saved;
   } catch (e) {}
-  return 0.8;
+  return 0.95;
 })();
 
-// Read the placed blocks as ONE smooth sentence in the player's order
-// ("wǒ ài nǐ"), with each block jumping when its own word comes up.
+// Read the placed blocks in the player's order, word by word with a short
+// pause ("wǒ, ài nǐ"), each block jumping when its own word comes up.
 //   - Voices that report their position (phones, Safari, local voices):
 //     jump exactly there.
 //   - Others (e.g. Chrome's online voice): time it from how long each word
@@ -344,7 +350,7 @@ function readPlacedSentence(thisCheck, onFinished) {
   const words = blocks.map(b => b.textContent);
   const firstChar = [];
   let pos = 0;
-  words.forEach(function (w) { firstChar.push(pos); pos += w.length; });
+  words.forEach(function (w) { firstChar.push(pos); pos += w.length + WORD_PAUSE.length; });
   const aloneMs = words.map(w => measuredSpeechMs.get(w) || 420 * w.length);
 
   let lastJumped = -1;
@@ -375,7 +381,7 @@ function readPlacedSentence(thisCheck, onFinished) {
   // if the device never says the voice started, jump on a timer anyway
   const noStartTimer = setTimeout(startTimedJumps, 700);
 
-  speak(words.join(""), {
+  speak(words.join(WORD_PAUSE), {
     onStart: function () {
       clearTimeout(noStartTimer);
       startTimedJumps();
@@ -395,7 +401,7 @@ function readPlacedSentence(thisCheck, onFinished) {
       if (ok && startedAt) {
         const sumAlone = aloneMs.reduce((a, b) => a + b, 0);
         const actual = performance.now() - startedAt;
-        const ratio = Math.min(1.2, Math.max(0.4, actual / sumAlone));
+        const ratio = Math.min(1.6, Math.max(0.4, actual / sumAlone));
         sentenceSpeedRatio = 0.5 * sentenceSpeedRatio + 0.5 * ratio;
         try { localStorage.setItem(SPEED_RATIO_KEY, sentenceSpeedRatio.toFixed(3)); } catch (e) {}
       }
