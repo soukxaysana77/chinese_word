@@ -146,6 +146,7 @@ let highestLevel = 1;
 
 let tutorialStep = 0;
 let tutorialActive = true;
+let questionShown = false; // a question is on screen (the word list has loaded)
 let tutorialWordIndex = 0;
 let revealTimer = null;
 let levelUpTimer = null;
@@ -256,8 +257,17 @@ function loadQuestion() {
   clearTranslation();
   hideNextButton();
 
+  questionShown = true;
+  // While the "how to play" tutorial is up, stay quiet — the question is read
+  // once the player skips it or finishes it (see closeTutorial).
+  if (!tutorialActive) speakQuestionSoon();
+}
+
+function speakQuestionSoon() {
+  const thisQuestion = checkCount; // bumps when a new question loads
   setTimeout(() => {
-    speak(q.chinese);
+    if (thisQuestion !== checkCount || answered || !questions.length) return;
+    speak(questions[currentQuestion].chinese);
   }, 500);
 }
 
@@ -742,9 +752,13 @@ function tutorialNext() {
 }
 
 function closeTutorial() {
+  const wasShowing = tutorialActive;
   tutorialActive = false;
   clearTutorialHighlight();
   document.getElementById("tutorialOverlay").style.display = "none";
+  // the question wasn't read out while the tutorial was up — read it now
+  // (unless the player already answered it during the tutorial)
+  if (wasShowing && questionShown && !answered) speakQuestionSoon();
 }
 
 function tutorialWordClicked(word) {
