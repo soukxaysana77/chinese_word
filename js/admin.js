@@ -323,6 +323,17 @@ async function deleteQuestion(index) {
 
 $("addBtn").addEventListener("click", function () { openEditor(-1); });
 
+// "▶ ทดลอง" / "▶ ทดลองเล่น": add a timestamp so the browser loads the game
+// fresh instead of a copy it saved earlier (GitHub Pages lets browsers
+// reuse pages for 10 minutes, which hid new changes right after an update).
+document.addEventListener("click", function (e) {
+  const link = e.target.closest('a[href^="./play.html"]');
+  if (!link) return;
+  const url = new URL(link.getAttribute("href"), location.href);
+  url.searchParams.set("t", Date.now());
+  link.href = url.href;
+});
+
 /* ==================== add / edit dialog ==================== */
 
 const dialog = $("editDialog");
