@@ -308,8 +308,40 @@ function selectWord(button, word) {
 
   tutorialWordClicked(word);
   updateAnswerArea();
+  hopBlock(document.getElementById("answerArea").lastElementChild); // jumps as it's spoken
   unlockSpeech();
   speak(word);
+}
+
+// One jump of a placed word block (CSS .word.hop); restarts if mid-jump.
+function hopBlock(el) {
+  if (!el) return;
+  el.classList.remove("hop");
+  void el.offsetWidth;
+  el.classList.add("hop");
+}
+
+// Roughly how long the voice spends on one Chinese character (rate 0.8).
+const HOP_MS_PER_CHAR = 280;
+
+let hopTimers = [];
+
+function cancelPendingHops() {
+  hopTimers.forEach(clearTimeout);
+  hopTimers = [];
+}
+
+// The placed blocks jump one after another while the sentence is read,
+// each held for as many characters as it has.
+function hopPlacedBlocksInOrder(thisCheck) {
+  cancelPendingHops();
+  let delay = 0;
+  document.querySelectorAll("#answerArea .answer-word").forEach(function (el) {
+    hopTimers.push(setTimeout(function () {
+      if (thisCheck === checkCount) hopBlock(el);
+    }, delay));
+    delay += el.textContent.length * HOP_MS_PER_CHAR;
+  });
 }
 
 function updateAnswerArea() {
@@ -381,11 +413,24 @@ function checkAnswer() {
   // Read the sentence back in the order the player put it, then play the
   // right/wrong tone (so the two sounds don't overlap). A wrong answer stays
   // on screen until the reading has finished, then the board resets.
+  // The blocks jump along with the voice: start when it starts, or after a
+  // moment if the device never says it started (no Chinese voice).
+  let hopsStarted = false;
+  const startHops = function () {
+    if (hopsStarted) return;
+    hopsStarted = true;
+    hopPlacedBlocksInOrder(thisCheck);
+  };
+  setTimeout(startHops, 600);
+
   unlockSpeech();
   speak(selectedWords.join(""), function () {
     if (thisCheck !== checkCount) return; // player already moved on
     if (correct) {
       playCorrectSound();
+      // right answer: all blocks jump together once more
+      cancelPendingHops();
+      document.querySelectorAll("#answerArea .answer-word").forEach(hopBlock);
       return;
     }
     playWrongSound();
@@ -401,7 +446,7 @@ function checkAnswer() {
       updateAnswerArea();
       clearMessage();
     }, 900);
-  });
+  }, startHops);
 
   if (correct) {
     xp += 10;

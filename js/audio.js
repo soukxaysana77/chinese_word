@@ -78,7 +78,8 @@ document.addEventListener("touchend", unlockSpeech, { once: true, capture: true 
 // onDone (optional) runs once when the speech ends, is cut off, or fails.
 // Some devices never report the end (no Chinese voice, speech blocked), so
 // a timer based on the sentence length makes sure it still runs.
-function speak(text, onDone) {
+// onStart (optional) runs when the voice actually starts.
+function speak(text, onDone, onStart) {
   let finished = false;
   let fallbackTimer = null;
   function done() {
@@ -106,7 +107,7 @@ function speak(text, onDone) {
   // engines can still synthesize it, some just stay silent. Nothing we
   // can fix from here.
 
-  utterance.onstart = () => startTalking();
+  utterance.onstart = () => { startTalking(); if (onStart) onStart(); };
   utterance.onend = () => { stopTalking(); done(); };
   utterance.onerror = () => { stopTalking(); done(); };
 

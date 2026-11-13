@@ -898,6 +898,16 @@ button.action {
 }
 .word:focus-visible{ outline:3px solid rgba(28,176,246,.55); outline-offset:3px; }
 
+/* a placed block jumps when its sound plays (added by hopBlock() in JS) */
+.word.hop{ animation:wordHop .5s cubic-bezier(.3,1.5,.5,1); }
+@keyframes wordHop{
+  0%  { transform:translateY(0); }
+  35% { transform:translateY(-16px) scale(1.08); }
+  60% { transform:translateY(0) scale(.97); }
+  80% { transform:translateY(-4px); }
+  100%{ transform:translateY(0); }
+}
+
 /* ---------- answer feedback ---------- */
 .message.correct{ animation:popIn .45s cubic-bezier(.3,1.6,.5,1); }
 .message.wrong{ animation:shake .45s ease; }
@@ -986,6 +996,6 @@ button.action:focus-visible{ outline:3px solid rgba(28,176,246,.55); outline-off
   .question.show-chinese, .message.correct, .message.wrong, .game:has(.message.wrong) .answer-area,
   .translation, button.action::after, .character-container svg,
   .result-star, .result-banner, .result-subtitle, .stat-card, .result-buttons,
-  .tutorial-card{ animation:none !important; }
+  .tutorial-card, .word.hop{ animation:none !important; }
   .home-btn, .speaker, .word, button.action, .result-btn, .tutorial-btn{ transition:none !important; }
 }
