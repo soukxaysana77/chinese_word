@@ -321,27 +321,36 @@ function hopBlock(el) {
   el.classList.add("hop");
 }
 
-// Roughly how long the voice spends on one Chinese character (rate 0.8).
-const HOP_MS_PER_CHAR = 280;
+// Read the placed blocks one at a time, in the player's order ("wǒ" …
+// "ài nǐ"). Each block jumps the moment its own word starts sounding, then
+// the next word is read. onFinished runs after the last word.
+function readPlacedWords(thisCheck, onFinished) {
+  const blocks = Array.from(document.querySelectorAll("#answerArea .answer-word"));
+  let i = 0;
 
-let hopTimers = [];
+  function readNext() {
+    if (thisCheck !== checkCount) return; // player already moved on
+    if (i >= blocks.length) {
+      onFinished();
+      return;
+    }
+    const block = blocks[i++];
+    let hopped = false;
+    const hop = function () {
+      if (hopped || thisCheck !== checkCount) return;
+      hopped = true;
+      hopBlock(block);
+    };
+    // if the device never says the voice started, jump anyway
+    const hopAnyway = setTimeout(hop, 600);
+    speak(block.textContent, function () {
+      clearTimeout(hopAnyway);
+      hop();
+      readNext();
+    }, hop);
+  }
 
-function cancelPendingHops() {
-  hopTimers.forEach(clearTimeout);
-  hopTimers = [];
-}
-
-// The placed blocks jump one after another while the sentence is read,
-// each held for as many characters as it has.
-function hopPlacedBlocksInOrder(thisCheck) {
-  cancelPendingHops();
-  let delay = 0;
-  document.querySelectorAll("#answerArea .answer-word").forEach(function (el) {
-    hopTimers.push(setTimeout(function () {
-      if (thisCheck === checkCount) hopBlock(el);
-    }, delay));
-    delay += el.textContent.length * HOP_MS_PER_CHAR;
-  });
+  readNext();
 }
 
 function updateAnswerArea() {
@@ -410,26 +419,15 @@ function checkAnswer() {
   answered = true;
   const thisCheck = ++checkCount;
 
-  // Read the sentence back in the order the player put it, then play the
-  // right/wrong tone (so the two sounds don't overlap). A wrong answer stays
-  // on screen until the reading has finished, then the board resets.
-  // The blocks jump along with the voice: start when it starts, or after a
-  // moment if the device never says it started (no Chinese voice).
-  let hopsStarted = false;
-  const startHops = function () {
-    if (hopsStarted) return;
-    hopsStarted = true;
-    hopPlacedBlocksInOrder(thisCheck);
-  };
-  setTimeout(startHops, 600);
-
+  // Read the placed words back one by one in the player's order, each block
+  // jumping with its own word, then play the right/wrong tone (so the sounds
+  // don't overlap). A wrong answer stays on screen until the reading has
+  // finished, then the board resets.
   unlockSpeech();
-  speak(selectedWords.join(""), function () {
-    if (thisCheck !== checkCount) return; // player already moved on
+  readPlacedWords(thisCheck, function () {
     if (correct) {
       playCorrectSound();
       // right answer: all blocks jump together once more
-      cancelPendingHops();
       document.querySelectorAll("#answerArea .answer-word").forEach(hopBlock);
       return;
     }
@@ -446,7 +444,7 @@ function checkAnswer() {
       updateAnswerArea();
       clearMessage();
     }, 900);
-  }, startHops);
+  });
 
   if (correct) {
     xp += 10;
