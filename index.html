@@ -1,93 +1,101 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="th">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Login - Chinese Word Order</title>
-  <link rel="stylesheet" href="./css/auth.css">
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>เกมฝึกความจำ — หน้าหลัก</title>
+<link rel="stylesheet" href="./css/home.css">
+<link rel="icon" href="./assets/favicon.svg" type="image/svg+xml">
 </head>
 <body>
-  <div class="auth-card">
 
-    <!-- <div class="lang-group">
-      <button class="lang-btn" id="authThaiBtn" onclick="setAuthLang('th')" type="button"> ไทย</button>
-      <button class="lang-btn" id="authEnBtn" onclick="setAuthLang('en')" type="button"> English</button>
-    </div> -->
+<div class="scenery" aria-hidden="true">
+  <div class="sun"></div>
+  <div class="hill hill-far"></div>
+  <div class="hill hill-near"></div>
+</div>
 
-    <div class="brand-row">
-      <span class="brand-pill">🈶 Chinese Word Order</span>
-    </div>
+<div class="app">
 
-    <div class="logo">
-      <svg viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Mascot logo of a girl in a Chinese qipao dress">
-        <defs>
-          <clipPath id="bunL"><circle cx="150" cy="160" r="36"/></clipPath>
-          <clipPath id="bunR"><circle cx="362" cy="160" r="36"/></clipPath>
-        </defs>
-        <g stroke="#0d0f12" stroke-width="9" stroke-linejoin="round" stroke-linecap="round">
-          <rect x="238" y="298" width="36" height="44" fill="#f8e1cd"/>
-          <path d="M214 334 C180 348 158 382 152 420 C150 428 156 433 165 433 L347 433 C356 433 362 428 360 420 C354 382 330 348 296 334 Z" fill="#d63a30"/>
-          <path d="M248 334 C274 348 298 372 316 402 L322 433 L165 433 C156 433 150 428 152 420 C158 382 180 348 214 334 Z" fill="#b92c26"/>
-          <path d="M252 341 C276 355 298 378 314 405" fill="none" stroke="#f0b429" stroke-width="6"/>
-          <circle cx="274" cy="346" r="6" fill="#f0b429" stroke-width="5"/>
-          <circle cx="297" cy="370" r="6" fill="#f0b429" stroke-width="5"/>
-          <path d="M158 414 L354 414 L360 420 C362 428 356 433 347 433 L165 433 C156 433 150 428 152 420 Z" fill="#f0b429"/>
-          <path d="M228 340 C226 310 238 294 256 294 C274 294 286 310 284 340 Z" fill="#d63a30"/>
-          <path d="M236 336 C235 313 243 302 256 302 C269 302 277 313 276 336" fill="none" stroke="#f0b429" stroke-width="5"/>
-          <circle cx="256" cy="316" r="6" fill="#f0b429" stroke-width="5"/>
-          <circle cx="150" cy="160" r="36" fill="#18262f"/>
-          <g clip-path="url(#bunL)"><circle cx="172" cy="180" r="27" fill="#f0b429" stroke="none"/></g>
-          <circle cx="150" cy="160" r="36" fill="none"/>
-          <circle cx="362" cy="160" r="36" fill="#18262f"/>
-          <g clip-path="url(#bunR)"><circle cx="340" cy="180" r="27" fill="#f0b429" stroke="none"/></g>
-          <circle cx="362" cy="160" r="36" fill="none"/>
-          <path d="M256 118 C328 118 368 166 368 236 C368 290 357 330 345 353 C337 331 330 311 326 291 L186 291 C182 311 175 331 167 353 C155 330 144 290 144 236 C144 166 184 118 256 118 Z" fill="#18262f"/>
-          <ellipse cx="169" cy="252" rx="17" ry="22" fill="#f8e1cd"/>
-          <ellipse cx="343" cy="252" rx="17" ry="22" fill="#f8e1cd"/>
-          <path d="M256 150 C305 150 345 181 345 238 C345 297 306 331 256 331 C206 331 167 297 167 238 C167 181 207 150 256 150 Z" fill="#f8e1cd"/>
-          <path d="M176 240 C173 168 210 130 256 130 C305 130 343 169 345 238 C337 223 323 209 307 201 C319 223 323 243 319 263 C301 233 273 215 241 209 C263 227 277 249 281 269 C259 237 225 221 197 223 C215 237 227 255 231 273 C217 247 195 238 176 240 Z" fill="#18262f"/>
-          <circle cx="192" cy="280" r="16" fill="#f0b28e" stroke="none"/>
-          <circle cx="320" cy="280" r="16" fill="#f0b28e" stroke="none"/>
-          <ellipse cx="222" cy="250" rx="24" ry="27" fill="#0d0f12" stroke="none"/>
-          <ellipse cx="290" cy="250" rx="24" ry="27" fill="#0d0f12" stroke="none"/>
-          <circle cx="214" cy="240" r="8" fill="#fdfcfa" stroke="none"/>
-          <circle cx="282" cy="240" r="8" fill="#fdfcfa" stroke="none"/>
-          <g fill="none" stroke-width="6">
-            <path d="M200 232 L189 222"/><path d="M206 224 L199 213"/>
-            <path d="M312 232 L323 222"/><path d="M306 224 L313 213"/>
-          </g>
-          <g fill="none" stroke-width="5">
-            <path d="M204 208 Q222 199 238 207"/>
-            <path d="M308 208 Q290 199 274 207"/>
-          </g>
-          <circle cx="256" cy="266" r="5" fill="#f0b28e" stroke="none"/>
-          <path d="M240 288 Q256 306 272 288" fill="none" stroke-width="7"/>
-        </g>
-      </svg>
-    </div>
+  <header class="hero">
+    <h1 id="appTitle">เกมฝึกความจำ</h1>
+    <p id="appSubtitle">เรียนรู้ภาษาจีน สนุก ได้สมอง</p>
+  </header>
 
-    <h1 id="loginTitle">Welcome Back!</h1>
-    <p class="subtitle" id="loginSubtitle">Login to continue your Chinese learning</p>
+  <div class="couple-wrap">
+    <div class="speech-bubble" id="speechBubble">ฝึกสมองให้สดใสทุกวัน!</div>
+    <svg class="couple" viewBox="0 0 260 190" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Illustration of an elderly couple">
+      <!-- grandma -->
+      <ellipse cx="150" cy="178" rx="60" ry="10" fill="#000" opacity="0.05"/>
+      <path d="M150 190 C120 190 108 170 112 148 L188 148 C192 170 180 190 150 190Z" fill="#f4c96b"/>
+      <circle cx="150" cy="112" r="34" fill="#f6ddb8"/>
+      <path d="M118 108 C114 82 130 62 150 62 C170 62 186 82 182 108 C176 96 168 90 150 90 C132 90 124 96 118 108Z" fill="#e8e8e8"/>
+      <circle cx="140" cy="112" r="10" fill="none" stroke="#4a4a4a" stroke-width="2.5"/>
+      <circle cx="162" cy="112" r="10" fill="none" stroke="#4a4a4a" stroke-width="2.5"/>
+      <line x1="150" y1="112" x2="152" y2="112" stroke="#4a4a4a" stroke-width="2.5"/>
+      <path d="M133 128 Q150 138 167 128" fill="none" stroke="#b5673a" stroke-width="2.5" stroke-linecap="round"/>
+      <circle cx="128" cy="118" r="5" fill="#f2a9a1" opacity="0.7"/>
+      <circle cx="172" cy="118" r="5" fill="#f2a9a1" opacity="0.7"/>
 
-    <form id="loginForm">
-      <label id="labelEmail">Email</label>
-      <input type="email" id="loginEmail" placeholder="Enter your email" required>
+      <!-- grandpa -->
+      <ellipse cx="90" cy="178" rx="55" ry="10" fill="#000" opacity="0.05"/>
+      <path d="M90 190 C62 190 50 168 55 145 L128 145 C132 168 118 190 90 190Z" fill="#5b7fbf"/>
+      <circle cx="88" cy="108" r="32" fill="#f6ddb8"/>
+      <path d="M60 100 C58 78 72 58 88 58 C104 58 118 78 116 100 C114 88 104 82 88 82 C72 82 62 88 60 100Z" fill="#8a8a8a"/>
+      <circle cx="78" cy="108" r="9" fill="none" stroke="#4a4a4a" stroke-width="2.5"/>
+      <circle cx="98" cy="108" r="9" fill="none" stroke="#4a4a4a" stroke-width="2.5"/>
+      <line x1="87" y1="108" x2="89" y2="108" stroke="#4a4a4a" stroke-width="2.5"/>
+      <path d="M74 123 Q88 130 102 123" fill="none" stroke="#b5673a" stroke-width="2.5" stroke-linecap="round"/>
+      <circle cx="68" cy="114" r="4.5" fill="#f2a9a1" opacity="0.7"/>
+      <circle cx="108" cy="114" r="4.5" fill="#f2a9a1" opacity="0.7"/>
 
-      <label id="labelPassword">Password</label>
-      <input type="password" id="loginPassword" placeholder="Enter your password" required>
-
-      <button type="submit" class="main-btn"><span id="loginBtnText">Login</span></button>
-      <p id="loginMessage" class="message"></p>
-    </form>
-
-    <div class="divider"><span id="dividerText">or</span></div>
-
-    <p class="switch"><span id="noAccountText">Don't have an account?</span>
-      <a href="./signup.html"><span id="signupLinkText">Sign Up</span></a>
-    </p>
+      <!-- little heart between them -->
+      <path class="couple-heart" d="M118 138 c0-6 8-6 8 0 0-6 8-6 8 0 0 5-8 9-8 13-0-4-8-8-8-13Z" fill="#ea3d7f"/>
+    </svg>
   </div>
 
-  <script src="./js/lang.js"></script>
-  <script src="./js/auth.js"></script>
+  <main class="card-panel">
+    <h2 class="section-title" id="modesTitle">เลือกเกม</h2>
+
+    <div class="modes">
+      <button class="mode green" type="button" onclick="location.href='./play.html'">
+        <span class="icon" aria-hidden="true">📝</span>
+        <span class="mode-text">
+          <span class="mode-title" id="modeWordOrder">จัดเรียงคำ</span>
+          <span class="sub" id="modeWordOrderSub">เรียงคำภาษาจีนให้เป็นประโยค · 5 ด่าน</span>
+        </span>
+        <span class="go" aria-hidden="true">
+          <svg viewBox="0 0 24 24" width="20" height="20"><path d="M9 5l7 7-7 7" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </span>
+      </button>
+
+      <!-- Add more modes here when their pages exist, e.g.:
+      <button class="mode pink" type="button" onclick="location.href='./characters.html'">
+        <span class="icon" aria-hidden="true">🀄</span>
+        <span class="mode-text">
+          <span class="mode-title" id="modeCharacters">ตัวอักษร</span>
+          <span class="sub" id="modeCharactersSub">(Characters)</span>
+        </span>
+        <span class="go" aria-hidden="true">…same chevron svg…</span>
+      </button>
+      -->
+    </div>
+
+    <nav class="bottom-nav">
+      <button class="nav-item active" type="button" aria-current="page">
+        <span class="nav-icon">🏠</span>
+        <span id="navHome">หน้าหลัก</span>
+      </button>
+      <button class="nav-item" type="button">
+        <span class="nav-icon">⚙️</span>
+        <span id="navSettings">ตั้งค่า</span>
+      </button>
+    </nav>
+  </main>
+</div>
+
+<script src="./js/lang.js"></script>
+<script src="./js/home.js"></script>
+
 </body>
 </html>

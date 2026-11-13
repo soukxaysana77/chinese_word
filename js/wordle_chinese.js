@@ -77,8 +77,10 @@ const translations = {
     score: "Score:",
     playAgain: "🔄 Play Again",
     home: "🏠 Home",
+    homeShort: "Home",
     next: "➡ Next",
     tutorialSkip: "Skip Tutorial",
+    tutorialStep: "Step {n} / {total}",
     level: "Level",
     levelUp: "🎉 Level {n} unlocked!",
     tutorial: [
@@ -105,8 +107,10 @@ const translations = {
     score: "คะแนน:",
     playAgain: "🔄 เล่นอีกครั้ง",
     home: "🏠 หน้าหลัก",
+    homeShort: "หน้าหลัก",
     next: "➡ ต่อไป",
-    tutorialSkip: "ข้าม Tutorial",
+    tutorialSkip: "ข้ามการสอน",
+    tutorialStep: "ขั้นที่ {n} / {total}",
     level: "ด่าน",
     levelUp: "🎉 ปลดล็อกด่าน {n}!",
     tutorial: [
@@ -135,7 +139,7 @@ let levelUpTimer = null;
 
 function changeLanguage(lang) {
   currentLanguage = lang;
-  setAppLang(lang); // shared key, so home/login/signup all pick it up too
+  setAppLang(lang); // shared key, so home/settings pick it up too
   updateLanguage();
 }
 
@@ -151,6 +155,10 @@ function updateLanguage() {
   document.getElementById("heartsLabel").textContent = t.heartsLabel;
   document.getElementById("playAgainBtn").textContent = t.playAgain;
   document.getElementById("homeBtn").textContent = t.home;
+  const topHome = document.getElementById("topHomeBtn");
+  document.getElementById("topHomeLabel").textContent = t.homeShort;
+  topHome.title = t.homeShort;
+  topHome.setAttribute("aria-label", t.homeShort);
   document.getElementById("nextBtn").textContent = t.next;
   document.getElementById("tutorialSkip").textContent = t.tutorialSkip;
 
@@ -240,14 +248,18 @@ function loadQuestion() {
 
 function renderColoredQuestion(questionEl, q) {
   questionEl.innerHTML = "";
-  q.words.forEach(word => {
+  // one wrapper line, so the words wrap as text inside .question's flex column
+  const line = document.createElement("div");
+  line.className = "question-text";
+  q.words.forEach((word, i) => {
     const span = document.createElement("span");
     span.textContent = word;
     span.style.color = colorForWord(word, q);
-    span.style.marginRight = "10px";
+    if (i < q.words.length - 1) span.style.marginRight = "10px";
     span.style.display = "inline-block";
-    questionEl.appendChild(span);
+    line.appendChild(span);
   });
+  questionEl.appendChild(line);
 }
 
 function createWordButtons() {
@@ -384,7 +396,12 @@ function showNextButton() {
   const buttonsRow = document.getElementById("buttonsRow");
   const nextBtn = document.getElementById("nextBtn");
   if (buttonsRow) buttonsRow.style.display = "none";
-  if (nextBtn) nextBtn.style.display = "block";
+  if (nextBtn) {
+    nextBtn.style.display = "block";
+    // long sentences don't fit on a phone screen — bring Next into view
+    const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    nextBtn.scrollIntoView({ behavior: reduceMotion ? "auto" : "smooth", block: "nearest" });
+  }
 }
 
 function hideNextButton() {
@@ -398,6 +415,7 @@ function goToNextQuestion() {
   hideNextButton();
   currentQuestion++;
   loadQuestion();
+  window.scrollTo(0, 0); // we may have scrolled down to reach Next
 }
 
 function clearAnswer() {
@@ -496,7 +514,7 @@ function renderConfetti() {
 }
 
 function goHome() {
-  window.location.href = "./home.html";
+  window.location.href = "./index.html";
 }
 
 function playAgain() {
@@ -519,11 +537,14 @@ function playAgain() {
 }
 
 function renderTutorial() {
-  const data = translations[currentLanguage].tutorial[tutorialStep];
+  const t = translations[currentLanguage];
+  const data = t.tutorial[tutorialStep];
   document.getElementById("tutorialIcon").textContent = data.icon;
   document.getElementById("tutorialTitle").textContent = data.title;
   document.getElementById("tutorialText").textContent = data.text;
-  document.getElementById("tutorialStep").textContent = `Step ${tutorialStep + 1} / 4`;
+  document.getElementById("tutorialStep").textContent = t.tutorialStep
+    .replace("{n}", tutorialStep + 1)
+    .replace("{total}", t.tutorial.length);
   document.getElementById("tutorialButton").textContent = data.button;
 }
 

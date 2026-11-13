@@ -19,7 +19,8 @@ html, body {
 
 body {
   font-family: 'Sarabun', Arial, sans-serif;
-  background: linear-gradient(135deg, #eef7ff, #fff);
+  /* same sky as the home screen */
+  background: linear-gradient(180deg, #bfe7f7 0%, #eaf7fb 55%, #eef8e9 100%);
   min-height: 100vh;
   min-height: 100dvh;
   display: flex;
@@ -32,9 +33,9 @@ body {
   width: 100%;
   max-width: 650px;
   background: white;
-  border-radius: 25px;
+  border-radius: 28px;
   padding: 25px;
-  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.12);
+  box-shadow: 0 24px 48px -22px rgba(35, 48, 71, 0.35), 0 2px 6px rgba(35, 48, 71, 0.05);
 }
 
 button {
@@ -43,31 +44,19 @@ button {
   user-select: none;
 }
 
-/* LANGUAGE SWITCHER */
-.language {
-  display: flex;
-  justify-content: flex-end;
-  gap: 8px;
-  margin-bottom: 15px;
+/* MASCOT COLOURS (used by the qipao girl SVG in play.html) */
+:root {
+  --line:   #0d0f12;
+  --hair:   #18262f;
+  --red:    #d63a30;
+  --red-2:  #b92c26;
+  --gold:   #f0b429;
+  --skin:   #f8e1cd;
+  --blush:  #f0b28e;
+  --white:  #fdfcfa;
 }
 
-.language button {
-  border: 2px solid #d9e1e8;
-  background: white;
-  padding: clamp(5px, 1.5vw, 7px) clamp(8px, 2.5vw, 12px);
-  border-radius: 12px;
-  cursor: pointer;
-  font-weight: bold;
-  font-size: clamp(12px, 3vw, 14px);
-}
-
-.language button.active {
-  background: #58cc02;
-  color: white;
-  border-color: #58cc02;
-}
-
-/* TOP STATUS BAR */
+/* TOP STATUS BAR: Home · hearts ........ level · XP */
 .top {
   display: flex;
   justify-content: space-between;
@@ -77,16 +66,48 @@ button {
   flex-wrap: nowrap;
 }
 
+.home-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  flex-shrink: 0;
+  min-width: 42px;
+  height: 42px;
+  padding: 0 9px;
+  border: 2px solid #d9e1e8;
+  border-radius: 14px;
+  background: white;
+  color: #233047;
+  font-family: inherit;
+  font-weight: bold;
+  font-size: 18px;
+  cursor: pointer;
+}
+
+/* icon only on phones, icon + label when there's room */
+.home-label {
+  display: none;
+  font-size: 14px;
+}
+
+@media (min-width: 560px) {
+  .home-label { display: inline; }
+}
+
 .heart {
+  margin-right: auto;
   color: hsl(350, 100%, 74%);
   font-size: clamp(17px, 4.5vw, 22px);
   font-weight: bold;
+  white-space: nowrap;
 }
 
 .xp {
   color: #d68000;
   font-weight: bold;
   font-size: clamp(14px, 4vw, 18px);
+  white-space: nowrap;
 }
 
 /* LEVEL BADGE */
@@ -152,16 +173,61 @@ button {
 /* HEADINGS & TEXT */
 h1 {
   text-align: center;
-  margin-bottom: 10px;
+  margin-bottom: 6px;
+  /* same blue→purple title as the home screen. Gradient text is clipped
+     to the box, so pad the top for stacked Thai tone marks. */
+  padding-top: 0.15em;
   font-size: clamp(24px, 6vw, 32px);
-  color: #1e293b;
+  background: linear-gradient(135deg, #2f8fe0, #8a5cf6);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
 }
 
 .instruction {
   text-align: center;
   color: #4b5563;
-  margin-bottom: 20px;
+  margin-bottom: 8px;
   font-size: clamp(14px, 3.2vw, 16px);
+}
+
+/* QUESTION AREA LAYOUT */
+.content-area {
+  position: relative;
+  width: 100%;
+}
+
+.question-section {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin-bottom: 18px;
+}
+
+/* mascot, pinyin and speaker side by side — the mascot "says" the pinyin */
+.listen-row {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: clamp(8px, 2.5vw, 14px);
+  width: 100%;
+}
+
+.character-container {
+  flex-shrink: 0;
+  width: clamp(72px, 21vw, 120px);
+  pointer-events: none;
+}
+
+.character-container svg {
+  width: 100%;
+  height: auto;
+  display: block;
+}
+
+.answer-container {
+  position: relative;
+  width: 100%;
 }
 
 /* LEVEL UP BANNER */
@@ -178,15 +244,33 @@ h1 {
   font-size: 17px;
 }
 
-/* QUESTION DISPLAY */
+/* QUESTION DISPLAY
+   The Chinese sentence is hidden and only shown for 2s when the pinyin is
+   tapped. Only one line of space is reserved for it; a longer sentence
+   grows UPWARD over the title (flex-end overflows at the top) instead of
+   leaving a big empty gap or pushing the game down. */
 .question {
+  position: relative;
+  z-index: 3;
+  width: 100%;
+  height: 1.3em;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  align-items: center;
   text-align: center;
   font-size: clamp(30px, 9vw, 54px);
   font-weight: bold;
-  margin: 25px 0 5px;
-  min-height: 60px;
+  margin: 10px 0 8px;
   visibility: hidden;
   letter-spacing: 1px;
+}
+
+.question-text {
+  line-height: 1.3;
+  padding: 0 8px;
+  border-radius: 14px;
+  background: white;
 }
 
 .question.show-chinese {
@@ -226,6 +310,20 @@ h1 {
   transform: translateY(2px);
   box-shadow: 0 1px 0 #f9a8d4;
   background: #fce7f3;
+}
+
+/* inside the mascot row: let the pill shrink and wrap long sentences */
+.listen-row .pinyin {
+  margin: 0;
+  max-width: none;
+  min-width: 0;
+  flex: 0 1 auto;
+  line-height: 1.4;
+}
+
+.listen-row .speaker {
+  margin: 0;
+  flex-shrink: 0;
 }
 
 /* AUDIO BUTTON */
@@ -328,7 +426,7 @@ h1 {
   color: #334155;
   background: #f1f5f9;
   border: 2px solid #cbd5e1;
-  border-radius: 0px;
+  border-radius: 14px;
   padding: 10px 14px;
 }
 
@@ -341,7 +439,7 @@ h1 {
 button.action {
   flex: 1;
   border: none;
-  border-radius: 0px;
+  border-radius: 14px;
   padding: clamp(14px, 3.5vw, 18px);
   font-size: clamp(16px, 4vw, 19px);
   font-weight: bold;
@@ -632,15 +730,13 @@ button.action {
   }
 
   .question {
-    margin: 15px 0 5px;
-    min-height: 44px;
+    margin: 4px 0 6px;
   }
 
   .speaker {
     width: 46px;
     height: 46px;
     font-size: 20px;
-    margin-bottom: 15px;
   }
 
   .answer-area {
@@ -662,6 +758,23 @@ button.action {
     padding: 16px;
     margin-top: 6vh;
   }
+}
+
+/* phones: tighten the stats row so it stays on one line */
+@media (max-width: 420px) {
+  .top { gap: 6px; }
+  .heart { font-size: 15px; }
+  .xp { font-size: 15px; }
+  .xp-unit { display: none; } /* "⭐ 100" — the star already says it's points */
+}
+
+/* very narrow phones (e.g. 320px) */
+@media (max-width: 360px) {
+  .top { gap: 6px; }
+  .home-btn { min-width: 38px; height: 38px; font-size: 16px; padding: 0 7px; }
+  .heart { font-size: 13px; letter-spacing: -1px; }
+  .level-badge { font-size: 10px; padding: 4px 7px; }
+  .xp { font-size: 13px; }
 }
 
 /* TABLET (bridges phone <-> desktop, keeps comfortable spacing mid-range) */
@@ -703,19 +816,12 @@ button.action {
   75%{ transform:translateX(3px); }
 }
 @keyframes shine{ from{ left:-60%; } to{ left:130%; } }
-@keyframes langPop{
-  0%  { transform:scale(.9); }
-  60% { transform:scale(1.1); }
-  100%{ transform:scale(1); }
-}
 
 /* ---------- page entrance (game screen only, no fixed elements inside) ---------- */
 #gameScreen{ animation:fadeUp .5s cubic-bezier(.2,.9,.3,1) backwards; }
 
-/* ---------- top-bar buttons (Home etc.) ---------- */
-.language button{
-  position:relative;
-  color:#233047;
+/* ---------- Home button ---------- */
+.home-btn{
   box-shadow:0 3px 0 #d9e1e8;
   transition:
     transform .18s cubic-bezier(.3,1.5,.5,1),
@@ -724,37 +830,21 @@ button.action {
     border-color .18s ease,
     color .18s ease;
 }
-.language button.active{
-  box-shadow:0 4px 0 #3f9401;
-  animation:langPop .4s cubic-bezier(.3,1.5,.5,1);
-}
 @media (hover:hover){
-  .language button:hover{
+  .home-btn:hover{
     transform:translateY(-3px);
     background:#eaf7ff;
     border-color:#1cb0f6;
     color:#1274a8;
     box-shadow:0 6px 0 #8fd3f8;
   }
-  .language button:not(.active)#thaiBtn:hover,
-  .language button:not(.active)#englishBtn:hover{
-    background:#f1fce8; border-color:#58cc02; color:#3f9401; box-shadow:0 6px 0 #a6e36b;
-  }
-  .language button[title="Log out"]:hover{
-    background:#fff1f3; border-color:#fb7185; color:#be123c; box-shadow:0 6px 0 #fda4af;
-  }
-  .language button.active:hover{
-    background:#62d90a; border-color:#62d90a; color:#fff;
-    box-shadow:0 7px 0 #3f9401;
-  }
 }
-.language button:active,
-.language button.active:active{
+.home-btn:active{
   transform:translateY(2px);
   box-shadow:0 1px 0 rgba(0,0,0,.18);
   transition-duration:.06s;
 }
-.language button:focus-visible{ outline:3px solid rgba(28,176,246,.55); outline-offset:3px; }
+.home-btn:focus-visible{ outline:3px solid rgba(28,176,246,.55); outline-offset:3px; }
 
 /* ---------- level dots + progress bar ---------- */
 .level-dot.current{ animation:dotPulse 1.8s ease-out infinite; }
@@ -892,10 +982,10 @@ button.action:focus-visible{ outline:3px solid rgba(28,176,246,.55); outline-off
 
 /* ---------- respect "reduce motion" ---------- */
 @media (prefers-reduced-motion:reduce){
-  #gameScreen, .language button.active, .level-dot.current, .progress, .level-up-banner,
+  #gameScreen, .level-dot.current, .progress, .level-up-banner,
   .question.show-chinese, .message.correct, .message.wrong, .game:has(.message.wrong) .answer-area,
   .translation, button.action::after, .character-container svg,
   .result-star, .result-banner, .result-subtitle, .stat-card, .result-buttons,
   .tutorial-card{ animation:none !important; }
-  .language button, .speaker, .word, button.action, .result-btn, .tutorial-btn{ transition:none !important; }
+  .home-btn, .speaker, .word, button.action, .result-btn, .tutorial-btn{ transition:none !important; }
 }

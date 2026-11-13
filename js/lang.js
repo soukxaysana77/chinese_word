@@ -36,3 +36,10 @@ window.addEventListener("storage", function (e) {
 // Make sure <html lang="..."> matches the saved choice as soon as this
 // file loads, not just after someone clicks a language button.
 document.documentElement.lang = getAppLang();
+
+// The login/sign-up pages are gone. Clear what they left in this browser
+// (including the saved accounts, which held plain-text passwords).
+try {
+  ["chineseWordUsers", "chineseWordLoggedIn", "chineseWordPlayerName", "chineseWordPlayerEmail"]
+    .forEach(function (key) { localStorage.removeItem(key); });
+} catch (e) {}

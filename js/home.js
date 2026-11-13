@@ -1,25 +1,17 @@
-// home.js — login guard + text/language handling for the home screen
-
-try {
-  if (localStorage.getItem("chineseWordLoggedIn") !== "true") {
-    window.location.replace("./index.html");
-  }
-} catch (e) {
-  // storage not available, just skip the guard
-}
+// home.js — text/language handling and bottom nav for the home screen
 
 const homeTranslations = {
   th: {
     speechBubble: "ฝึกสมองให้สดใสทุกวัน!",
     appTitle: "เกมฝึกความจำ",
     appSubtitle: "เรียนรู้ภาษาจีน สนุก ได้สมอง",
+    modesTitle: "เลือกเกม",
     modeMemory: "จำภาพ", modeMemorySub: "(Memory)",
     modeNumbers: "จำตัวเลข", modeNumbersSub: "(Numbers)",
     modeMatching: "จับคู่รูปภาพ", modeMatchingSub: "(Matching)",
     modeCharacters: "ตัวอักษร", modeCharactersSub: "(Characters)",
-    modeWordOrder: "จัดเรียงคำ", modeWordOrderSub: "(Word Order)",
+    modeWordOrder: "จัดเรียงคำ", modeWordOrderSub: "เรียงคำภาษาจีนให้เป็นประโยค · 5 ด่าน",
     modeListening: "จำเสียง", modeListeningSub: "(Listening)",
-    levelBadge: "🏅 ด่าน 1 / 5",
     navHome: "หน้าหลัก",
     navStats: "สถิติ",
     navSettings: "ตั้งค่า"
@@ -28,13 +20,13 @@ const homeTranslations = {
     speechBubble: "Train your brain every day!",
     appTitle: "Memory Training Game",
     appSubtitle: "Learn Chinese, have fun, train your brain",
+    modesTitle: "Choose a game",
     modeMemory: "Memory", modeMemorySub: "(Images)",
     modeNumbers: "Numbers", modeNumbersSub: "(Numbers)",
     modeMatching: "Matching", modeMatchingSub: "(จับคู่)",
     modeCharacters: "Characters", modeCharactersSub: "(ตัวอักษร)",
-    modeWordOrder: "Word Order", modeWordOrderSub: "(เรียงคำ)",
+    modeWordOrder: "Word Order", modeWordOrderSub: "Build Chinese sentences · 5 levels",
     modeListening: "Listening", modeListeningSub: "(ฟังเสียง)",
-    levelBadge: "🏅 Level 1 / 5",
     navHome: "Home",
     navStats: "Stats",
     navSettings: "Settings"
@@ -51,44 +43,14 @@ function renderHomeLang(lang) {
     const el = document.getElementById(id);
     if (el) el.textContent = t[id];
   });
-
-  const thaiBtn = document.getElementById("thaiBtn");
-  const englishBtn = document.getElementById("englishBtn");
-  if (thaiBtn) thaiBtn.classList.toggle("active", lang === "th");
-  if (englishBtn) englishBtn.classList.toggle("active", lang === "en");
-}
-
-// Persists the choice app-wide, then repaints. Wire click handlers to this.
-function setLang(lang) {
-  const saved = setAppLang(lang);
-  renderHomeLang(saved);
-}
-
-function changeLanguage(lang) {
-  setLang(lang);
 }
 
 renderHomeLang(getAppLang());
 
-function logoutPlayer() {
-  localStorage.removeItem("chineseWordLoggedIn");
-  localStorage.removeItem("chineseWordPlayerName");
-  localStorage.removeItem("chineseWordPlayerEmail");
-  window.location.href = "./index.html";
-}
-
-(function showGreeting() {
-  try {
-    const name = localStorage.getItem("chineseWordPlayerName");
-    const greeting = document.getElementById("playerGreeting");
-    if (name && greeting) greeting.textContent = "Hi, " + name;
-  } catch (e) {}
-})();
-
-// Bottom-nav Home / Stats / Settings buttons.
+// Bottom-nav Home / Settings buttons.
 (function wireBottomNav() {
   const navButtons = document.querySelectorAll(".bottom-nav .nav-item");
-  const destinations = ["./home.html","./setting.html"];
+  const destinations = ["./index.html", "./setting.html"];
 
   navButtons.forEach(function (btn, i) {
     btn.addEventListener("click", function () {
