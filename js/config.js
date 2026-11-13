@@ -7,6 +7,6 @@
 // Leave them empty to run without a server (the game then uses the
 // built-in list in data/questions.js and the admin page is disabled).
 const SERVER_CONFIG = {
-  supabaseUrl: "",  // e.g. "https://abcdefghijkl.supabase.co"
-  supabaseKey: ""   // the "anon public" (or "publishable") API key
+  supabaseUrl: "https://mlqpsvvyvwcjttzjaqgl.supabase.co",
+  supabaseKey: "sb_publishable_XwfaK1XQW0XEZwJLBDu4rQ_Wnwjudxu"  // publishable key — safe to be public
 };
