@@ -9,7 +9,7 @@ Setup (once): see "Recorded audio" in SERVER_SETUP.md. Then, from the repo root:
 
     ..\\tts\\env\\Scripts\\python -X utf8 tools\\make_audio.py
 
-Options: --voice zf_001 (one of Kokoro v1.1-zh's voices), --speed 0.9,
+Options: --voice zf_003 (one of Kokoro v1.1-zh's voices), --speed 0.9,
          --model <folder with kokoro-v1.1-zh.fp16.onnx, voices-v1.1-zh.bin, config.json>
 Existing files are reused, so re-running only makes what's new. Use --redo to
 make everything again (e.g. after changing the voice).
@@ -58,8 +58,11 @@ def load_server():
         return []
 
 
-def clip_name(text):
-    return hashlib.sha1(text.encode("utf-8")).hexdigest()[:12] + ".mp3"
+def clip_name(text, voice, speed):
+    # the voice is part of the name, so a new voice gets new file addresses and
+    # browsers can't keep playing the old one from their cache
+    key = f"{voice}|{speed}|{text}"
+    return hashlib.sha1(key.encode("utf-8")).hexdigest()[:12] + ".mp3"
 
 
 def trim(samples, sr):
@@ -74,7 +77,7 @@ def trim(samples, sr):
 
 def main():
     ap = argparse.ArgumentParser()
-    ap.add_argument("--voice", default="zf_001")
+    ap.add_argument("--voice", default="zf_003")
     ap.add_argument("--speed", type=float, default=0.9)
     ap.add_argument("--model", default=str(REPO.parent / "tts" / "model"))
     ap.add_argument("--redo", action="store_true")
@@ -89,11 +92,9 @@ def main():
 
     AUDIO.mkdir(exist_ok=True)
     manifest_path = AUDIO / "manifest.json"
-    old = json.loads(manifest_path.read_text(encoding="utf-8")) if manifest_path.exists() else {}
-    same_voice = old.get("voice") == args.voice and old.get("speed") == args.speed
+    name = {t: clip_name(t, args.voice, args.speed) for t in texts}
 
-    todo = [t for t in texts
-            if args.redo or not same_voice or not (AUDIO / clip_name(t)).exists()]
+    todo = [t for t in texts if args.redo or not (AUDIO / name[t]).exists()]
     print(f"{len(texts)} texts ({len(questions)} sentences), {len(todo)} to make, voice {args.voice}")
 
     if todo:
@@ -106,12 +107,12 @@ def main():
         for i, text in enumerate(todo, 1):
             phonemes, _ = g2p(text)
             samples, sr = kokoro.create(phonemes, voice=args.voice, speed=args.speed, is_phonemes=True)
-            sf.write(AUDIO / clip_name(text), trim(samples, sr), sr, format="MP3", compression_level=0.7)
+            sf.write(AUDIO / name[text], trim(samples, sr), sr, format="MP3", compression_level=0.7)
             if i % 50 == 0 or i == len(todo):
                 print(f"  {i}/{len(todo)}")
 
-    # drop files no longer used by any sentence
-    keep = {clip_name(t) for t in texts}
+    # drop files no longer used (old voice, deleted sentences)
+    keep = set(name.values())
     removed = 0
     for f in AUDIO.glob("*.mp3"):
         if f.name not in keep:
@@ -122,7 +123,7 @@ def main():
         "voice": args.voice,
         "speed": args.speed,
         "note": "Made by tools/make_audio.py (Kokoro v1.1-zh). text -> file in this folder.",
-        "files": {t: clip_name(t) for t in texts},
+        "files": name,
     }
     manifest_path.write_text(json.dumps(manifest, ensure_ascii=False, indent=1), encoding="utf-8")
     size = sum(f.stat().st_size for f in AUDIO.glob("*.mp3"))
