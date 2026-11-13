@@ -75,28 +75,41 @@ function unlockSpeech() {
 document.addEventListener("click", unlockSpeech, { once: true, capture: true });
 document.addEventListener("touchend", unlockSpeech, { once: true, capture: true });
 
-// onDone (optional) runs once when the speech ends, is cut off, or fails.
-// onStart (optional) runs when the voice actually starts.
-// Some devices never report start/end (no Chinese voice, speech blocked),
-// so onDone still runs if the voice hasn't started within 2.5s, or once it
-// has run well past how long the text should take.
-function speak(text, onDone, onStart) {
+// How long the voice took to say each text on THIS device (ms, from start
+// to end). Filled in by every speak() — e.g. each word as the player taps
+// it — and used to time the block jumps when a whole sentence is read.
+const measuredSpeechMs = new Map();
+let latestSpeechId = 0; // a newer speak() cuts off older ones
+
+// opts (all optional):
+//   onStart()            the voice actually started
+//   onBoundary(charIdx)  the voice reports it reached this character
+//                        (only some voices do — phones, Safari, local voices)
+//   onDone(ok)           runs once at the end; ok = false if it was cut off,
+//                        failed, or the device never reported the end
+// Some devices never report start/end (no Chinese voice, speech blocked), so
+// onDone still runs if the voice hasn't started within 2.5s, or once it has
+// run well past how long the text should take.
+function speak(text, opts) {
+  opts = opts || {};
   let finished = false;
   let fallbackTimer = null;
-  function done() {
+  let startedAt = 0;
+  function done(ok) {
     if (finished) return;
     finished = true;
     clearTimeout(fallbackTimer);
-    if (onDone) onDone();
+    if (opts.onDone) opts.onDone(ok);
   }
-  if (onDone) fallbackTimer = setTimeout(done, 2500);
+  if (opts.onDone) fallbackTimer = setTimeout(done, 2500, false);
 
   if (!("speechSynthesis" in window)) {
-    if (onDone) setTimeout(done, 0);
+    if (opts.onDone) setTimeout(done, 0, false);
     return;
   }
 
   speechSynthesis.cancel();
+  const speechId = ++latestSpeechId;
   const utterance = new SpeechSynthesisUtterance(text);
   utterance.lang = "zh-CN";
   utterance.rate = 0.8;
@@ -109,15 +122,27 @@ function speak(text, onDone, onStart) {
   // can fix from here.
 
   utterance.onstart = () => {
+    startedAt = performance.now();
     startTalking();
-    if (onDone && !finished) {
+    if (opts.onDone && !finished) {
       clearTimeout(fallbackTimer);
-      fallbackTimer = setTimeout(done, 1500 + 450 * text.length);
+      fallbackTimer = setTimeout(done, 1500 + 450 * text.length, false);
     }
-    if (onStart) onStart();
+    if (opts.onStart) opts.onStart();
   };
-  utterance.onend = () => { stopTalking(); done(); };
-  utterance.onerror = () => { stopTalking(); done(); };
+  utterance.onboundary = (e) => {
+    if (opts.onBoundary && typeof e.charIndex === "number") opts.onBoundary(e.charIndex);
+  };
+  utterance.onend = () => {
+    // some browsers report "end" (not "error") when a newer speak() cut this
+    // one off — don't count that as finished or measure it
+    const cutOff = speechId !== latestSpeechId;
+    const took = startedAt ? performance.now() - startedAt : 0;
+    if (!cutOff && took > 150) measuredSpeechMs.set(text, took);
+    stopTalking();
+    done(!cutOff);
+  };
+  utterance.onerror = () => { stopTalking(); done(false); };
 
   speechSynthesis.speak(utterance);
 }

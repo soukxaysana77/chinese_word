@@ -321,36 +321,87 @@ function hopBlock(el) {
   el.classList.add("hop");
 }
 
-// Read the placed blocks one at a time, in the player's order ("wǒ" …
-// "ài nǐ"). Each block jumps the moment its own word starts sounding, then
-// the next word is read. onFinished runs after the last word.
-function readPlacedWords(thisCheck, onFinished) {
-  const blocks = Array.from(document.querySelectorAll("#answerArea .answer-word"));
-  let i = 0;
+// How much quicker words come out inside a sentence than said alone. Starts
+// as a guess and is corrected after every read-back, then remembered.
+const SPEED_RATIO_KEY = "chineseWordSentenceSpeedRatio";
+let sentenceSpeedRatio = (function () {
+  try {
+    const saved = parseFloat(localStorage.getItem(SPEED_RATIO_KEY));
+    if (saved >= 0.4 && saved <= 1.2) return saved;
+  } catch (e) {}
+  return 0.8;
+})();
 
-  function readNext() {
-    if (thisCheck !== checkCount) return; // player already moved on
-    if (i >= blocks.length) {
-      onFinished();
-      return;
-    }
-    const block = blocks[i++];
-    let hopped = false;
-    const hop = function () {
-      if (hopped || thisCheck !== checkCount) return;
-      hopped = true;
-      hopBlock(block);
-    };
-    // if the device never says the voice started, jump anyway
-    const hopAnyway = setTimeout(hop, 600);
-    speak(block.textContent, function () {
-      clearTimeout(hopAnyway);
-      hop();
-      readNext();
-    }, hop);
+// Read the placed blocks as ONE smooth sentence in the player's order
+// ("wǒ ài nǐ"), with each block jumping when its own word comes up.
+//   - Voices that report their position (phones, Safari, local voices):
+//     jump exactly there.
+//   - Others (e.g. Chrome's online voice): time it from how long each word
+//     took when the player tapped it, scaled by sentenceSpeedRatio.
+// onFinished runs after the reading ends.
+function readPlacedSentence(thisCheck, onFinished) {
+  const blocks = Array.from(document.querySelectorAll("#answerArea .answer-word"));
+  const words = blocks.map(b => b.textContent);
+  const firstChar = [];
+  let pos = 0;
+  words.forEach(function (w) { firstChar.push(pos); pos += w.length; });
+  const aloneMs = words.map(w => measuredSpeechMs.get(w) || 420 * w.length);
+
+  let lastJumped = -1;
+  let gotBoundary = false;
+  let started = false;
+  let startedAt = 0;
+  const timers = [];
+
+  function jump(i) {
+    if (thisCheck !== checkCount || i <= lastJumped) return;
+    lastJumped = i;
+    hopBlock(blocks[i]);
   }
 
-  readNext();
+  function startTimedJumps() {
+    if (started) return;
+    started = true;
+    startedAt = performance.now();
+    jump(0);
+    let at = 0;
+    for (let i = 1; i < blocks.length; i++) {
+      at += aloneMs[i - 1] * sentenceSpeedRatio;
+      const n = i;
+      timers.push(setTimeout(function () { if (!gotBoundary) jump(n); }, at));
+    }
+  }
+
+  // if the device never says the voice started, jump on a timer anyway
+  const noStartTimer = setTimeout(startTimedJumps, 700);
+
+  speak(words.join(""), {
+    onStart: function () {
+      clearTimeout(noStartTimer);
+      startTimedJumps();
+    },
+    onBoundary: function (charIndex) {
+      gotBoundary = true;
+      let i = firstChar.length - 1;
+      while (i > 0 && firstChar[i] > charIndex) i--;
+      jump(i);
+    },
+    onDone: function (ok) {
+      clearTimeout(noStartTimer);
+      timers.forEach(clearTimeout);
+      if (thisCheck !== checkCount) return; // player already moved on
+
+      // learn this device's sentence speed for next time
+      if (ok && startedAt) {
+        const sumAlone = aloneMs.reduce((a, b) => a + b, 0);
+        const actual = performance.now() - startedAt;
+        const ratio = Math.min(1.2, Math.max(0.4, actual / sumAlone));
+        sentenceSpeedRatio = 0.5 * sentenceSpeedRatio + 0.5 * ratio;
+        try { localStorage.setItem(SPEED_RATIO_KEY, sentenceSpeedRatio.toFixed(3)); } catch (e) {}
+      }
+      onFinished();
+    }
+  });
 }
 
 function updateAnswerArea() {
@@ -419,12 +470,12 @@ function checkAnswer() {
   answered = true;
   const thisCheck = ++checkCount;
 
-  // Read the placed words back one by one in the player's order, each block
-  // jumping with its own word, then play the right/wrong tone (so the sounds
-  // don't overlap). A wrong answer stays on screen until the reading has
-  // finished, then the board resets.
+  // Read the placed words back as one sentence in the player's order, each
+  // block jumping with its own word, then play the right/wrong tone (so the
+  // sounds don't overlap). A wrong answer stays on screen until the reading
+  // has finished, then the board resets.
   unlockSpeech();
-  readPlacedWords(thisCheck, function () {
+  readPlacedSentence(thisCheck, function () {
     if (correct) {
       playCorrectSound();
       // right answer: all blocks jump together once more
