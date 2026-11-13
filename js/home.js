@@ -14,7 +14,8 @@ const homeTranslations = {
     modeListening: "จำเสียง", modeListeningSub: "(Listening)",
     navHome: "หน้าหลัก",
     navStats: "สถิติ",
-    navSettings: "ตั้งค่า"
+    navSettings: "ตั้งค่า",
+    navAdmin: "แอดมิน"
   },
   en: {
     speechBubble: "Train your brain every day!",
@@ -29,7 +30,8 @@ const homeTranslations = {
     modeListening: "Listening", modeListeningSub: "(ฟังเสียง)",
     navHome: "Home",
     navStats: "Stats",
-    navSettings: "Settings"
+    navSettings: "Settings",
+    navAdmin: "Admin"
   }
 };
 
@@ -47,10 +49,10 @@ function renderHomeLang(lang) {
 
 renderHomeLang(getAppLang());
 
-// Bottom-nav Home / Settings buttons.
+// Bottom-nav Home / Settings / Admin buttons.
 (function wireBottomNav() {
   const navButtons = document.querySelectorAll(".bottom-nav .nav-item");
-  const destinations = ["./index.html", "./setting.html"];
+  const destinations = ["./index.html", "./setting.html", "./admin.html"];
 
   navButtons.forEach(function (btn, i) {
     btn.addEventListener("click", function () {

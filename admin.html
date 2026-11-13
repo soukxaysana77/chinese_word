@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>แอดมิน — เกมฝึกความจำ</title>
+<link rel="stylesheet" href="./css/home.css">
+<link rel="stylesheet" href="./css/admin.css">
+<link rel="icon" href="./assets/favicon.svg" type="image/svg+xml">
+</head>
+<body>
+
+<div class="scenery" aria-hidden="true">
+  <div class="sun"></div>
+  <div class="hill hill-far"></div>
+  <div class="hill hill-near"></div>
+</div>
+
+<div class="app app-admin">
+
+  <!-- ================= PIN SCREEN ================= -->
+  <section id="lockScreen">
+    <header class="hero">
+      <h1>แอดมิน</h1>
+      <p>ใส่รหัสเพื่อจัดการคำศัพท์</p>
+    </header>
+
+    <main class="card-panel lock-card" id="lockCard">
+      <div class="lock-icon" aria-hidden="true">🔐</div>
+      <p class="server-warning" id="serverWarning" hidden>
+        ยังไม่ได้เชื่อมต่อเซิร์ฟเวอร์ — ต้องตั้งค่า Supabase ก่อน
+        (ดูไฟล์ SERVER_SETUP.md ในโปรเจกต์)
+      </p>
+      <form id="pinForm" autocomplete="off">
+        <label class="field-label center" for="pinInput">รหัสแอดมิน</label>
+        <input class="pin-input" id="pinInput" type="password" inputmode="numeric"
+               pattern="[0-9]*" maxlength="12" autocomplete="off" placeholder="••••">
+        <p class="pin-msg" id="pinMsg" role="alert"></p>
+        <button class="btn btn-primary btn-block" type="submit" id="pinSubmit">เข้าสู่ระบบ</button>
+      </form>
+    </main>
+  </section>
+
+  <!-- ================= EDITOR ================= -->
+  <section id="adminScreen" hidden>
+    <header class="hero">
+      <h1>จัดการคำศัพท์</h1>
+      <p>เพิ่ม แก้ไข หรือลบประโยคในแต่ละด่าน</p>
+    </header>
+
+    <div class="toolbar">
+      <a class="btn btn-secondary" href="./play.html">▶ ทดลองเล่น</a>
+      <button class="btn btn-secondary" type="button" id="logoutBtn">🔒 ออกจากแอดมิน</button>
+    </div>
+
+    <p class="status status-clean" id="status" role="status"></p>
+
+    <main class="card-panel">
+      <div class="level-tabs" id="levelTabs" role="tablist" aria-label="เลือกด่าน"></div>
+      <p class="level-hint" id="levelHint"></p>
+
+      <button class="btn btn-primary btn-block" type="button" id="addBtn">＋ เพิ่มประโยคในด่านนี้</button>
+
+      <ul class="q-list" id="qList"></ul>
+    </main>
+
+    <section class="card-panel tools">
+      <h2>🛠 เครื่องมือ</h2>
+
+      <div class="tool">
+        <h3>เปลี่ยนรหัสแอดมิน</h3>
+        <form class="pin-change" id="pinChangeForm" autocomplete="off">
+          <input class="field" id="newPin" type="password" inputmode="numeric" pattern="[0-9]*"
+                 maxlength="12" autocomplete="new-password" placeholder="รหัสใหม่ (ตัวเลข 4–12 หลัก)" aria-label="รหัสใหม่">
+          <input class="field" id="newPin2" type="password" inputmode="numeric" pattern="[0-9]*"
+                 maxlength="12" autocomplete="new-password" placeholder="ใส่รหัสใหม่อีกครั้ง" aria-label="ใส่รหัสใหม่อีกครั้ง">
+          <button class="btn btn-secondary" type="submit">เปลี่ยนรหัส</button>
+        </form>
+        <p class="form-error" id="pinChangeMsg" role="alert"></p>
+      </div>
+
+      <div class="tool">
+        <h3>สำรองคำศัพท์</h3>
+        <p>ดาวน์โหลดคำศัพท์ทั้งหมดเป็นไฟล์ questions.js เก็บไว้</p>
+        <button class="btn btn-secondary" type="button" id="downloadBtn">⬇ ดาวน์โหลดไฟล์สำรอง</button>
+      </div>
+
+      <div class="tool">
+        <h3>คืนค่าชุดเริ่มต้น</h3>
+        <p>แทนที่คำศัพท์ทั้งหมดด้วยชุดที่มากับเกม (<span id="builtInCount"></span> ประโยค)</p>
+        <button class="btn btn-danger" type="button" id="resetBtn">↺ คืนค่าชุดเริ่มต้น</button>
+      </div>
+    </section>
+  </section>
+
+  <!-- ================= BOTTOM NAV ================= -->
+  <div class="card-panel nav-card">
+    <nav class="bottom-nav">
+      <a class="nav-item" href="./index.html">
+        <span class="nav-icon">🏠</span>
+        <span>หน้าหลัก</span>
+      </a>
+      <a class="nav-item" href="./setting.html">
+        <span class="nav-icon">⚙️</span>
+        <span>ตั้งค่า</span>
+      </a>
+      <span class="nav-item active" aria-current="page">
+        <span class="nav-icon">🔐</span>
+        <span>แอดมิน</span>
+      </span>
+    </nav>
+  </div>
+</div>
+
+<!-- ================= ADD / EDIT DIALOG ================= -->
+<dialog class="edit-dialog" id="editDialog" aria-labelledby="dialogTitle">
+  <form id="editForm" novalidate>
+    <h2 id="dialogTitle">เพิ่มประโยคใหม่</h2>
+
+    <label class="field-label" for="fLevel">ด่าน</label>
+    <select class="field" id="fLevel">
+      <option value="1">ด่าน 1</option>
+      <option value="2">ด่าน 2</option>
+      <option value="3">ด่าน 3</option>
+      <option value="4">ด่าน 4</option>
+      <option value="5">ด่าน 5</option>
+    </select>
+
+    <label class="field-label" for="fWords">คำภาษาจีน เรียงตามลำดับที่ถูกต้อง</label>
+    <div class="field-row">
+      <input class="field field-zh" id="fWords" type="text" lang="zh-CN" placeholder="我 喜欢 吃 苹果">
+      <button class="icon-btn" type="button" id="speakBtn" title="ฟังเสียง" aria-label="ฟังเสียง">🔊</button>
+    </div>
+    <p class="field-help">เว้นวรรคระหว่างแต่ละคำ ผู้เล่นจะได้ปุ่มคำละ 1 ปุ่ม (เกมจะสลับลำดับให้เอง)</p>
+    <div class="chips" id="wordChips" aria-live="polite"></div>
+
+    <label class="field-label" for="fPinyin">พินอิน</label>
+    <input class="field" id="fPinyin" type="text" placeholder="wǒ xǐhuan chī píngguǒ">
+
+    <label class="field-label" for="fTh">คำแปลภาษาไทย</label>
+    <input class="field" id="fTh" type="text" placeholder="ฉันชอบกินแอปเปิล">
+
+    <label class="field-label" for="fEn">คำแปลภาษาอังกฤษ <span class="optional">(ไม่บังคับ)</span></label>
+    <input class="field" id="fEn" type="text" placeholder="I like eating apples">
+
+    <p class="form-error" id="formError" role="alert"></p>
+
+    <div class="dialog-actions">
+      <button class="btn btn-secondary" type="button" id="cancelBtn">ยกเลิก</button>
+      <button class="btn btn-primary" type="submit" id="saveBtn">💾 บันทึก</button>
+    </div>
+  </form>
+</dialog>
+
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+<script src="./js/lang.js"></script>
+<script src="./js/config.js"></script>
+<script src="./data/questions.js"></script>
+<script src="./js/question-store.js"></script>
+<script src="./js/admin.js"></script>
+
+</body>
+</html>

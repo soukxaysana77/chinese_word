@@ -48,6 +48,10 @@
         <span class="nav-icon">⚙️</span>
         <span id="navSettings">ตั้งค่า</span>
       </button>
+      <button class="nav-item" type="button" id="navAdminBtn">
+        <span class="nav-icon">🔐</span>
+        <span id="navAdmin">แอดมิน</span>
+      </button>
     </nav>
   </main>
 </div>
@@ -61,7 +65,8 @@
       languageLabel: "ภาษา",
       languageDesc: "เลือกภาษาที่ใช้ในเกม",
       navHome: "หน้าหลัก",
-      navSettings: "ตั้งค่า"
+      navSettings: "ตั้งค่า",
+      navAdmin: "แอดมิน"
     },
     en: {
       settingsTitle: "Settings",
@@ -69,7 +74,8 @@
       languageLabel: "Language",
       languageDesc: "Choose the language used in the game",
       navHome: "Home",
-      navSettings: "Settings"
+      navSettings: "Settings",
+      navAdmin: "Admin"
     }
   };
 
@@ -104,6 +110,9 @@
 
   document.getElementById("navHomeBtn").addEventListener("click", function () {
     window.location.href = "./index.html";
+  });
+  document.getElementById("navAdminBtn").addEventListener("click", function () {
+    window.location.href = "./admin.html";
   });
 </script>
 

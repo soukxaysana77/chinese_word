@@ -98,6 +98,7 @@ function speak(text) {
 }
 
 function speakCurrent() {
+  if (!questions.length) return; // word list still loading
   unlockSpeech();
   speak(questions[currentQuestion].chinese);
 }

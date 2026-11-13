@@ -346,7 +346,7 @@ function removeWord(index) {
 }
 
 function checkAnswer() {
-  if (answered) return;
+  if (answered || !questions.length) return;
 
   const q = questions[currentQuestion];
   const t = translations[currentLanguage];
@@ -419,7 +419,7 @@ function goToNextQuestion() {
 }
 
 function clearAnswer() {
-  if (answered) return;
+  if (answered || !questions.length) return;
   selectedWords = [];
   createWordButtons();
   updateAnswerArea();
@@ -452,7 +452,8 @@ function showMessage(text, type) {
 function showTranslation(q) {
   const box = document.getElementById("translation");
   if (!box) return;
-  const translated = currentLanguage === "th" ? q.th : q.en;
+  // English is optional for admin-added sentences — fall back to Thai.
+  const translated = currentLanguage === "th" ? q.th : (q.en || q.th);
   box.innerHTML = `${q.chinese} <span style="color:#94a3b8;">→</span> ${translated}`;
   box.style.display = "block";
 }
@@ -465,6 +466,7 @@ function clearTranslation() {
 }
 
 function revealChinese() {
+  if (!questions.length) return; // word list still loading
   const question = document.getElementById("question");
   question.classList.add("show-chinese");
   speakCurrent();
@@ -568,6 +570,7 @@ function highlightPinyin() {
 }
 
 function highlightFirstCorrectWord() {
+  if (!questions.length) return;
   const needed = questions[currentQuestion].answer[tutorialWordIndex];
   const buttons = document.querySelectorAll("#words .word");
 
@@ -611,7 +614,7 @@ function closeTutorial() {
 }
 
 function tutorialWordClicked(word) {
-  if (!tutorialActive || tutorialStep !== 2) return;
+  if (!tutorialActive || tutorialStep !== 2 || !questions.length) return;
 
   const expected = questions[currentQuestion].answer[tutorialWordIndex];
 
@@ -635,11 +638,17 @@ window.addEventListener(APP_LANG_EVENT, function (e) {
   updateLanguage();
 });
 
-buildQuestionOrder();
+// Text first — it doesn't need the word list, so the tutorial shows in the
+// right language straight away.
 currentLanguage = getAppLang();
 updateHearts();
 updateXP();
 updateLevelBadge();
-loadQuestion();
 renderTutorial();
 updateLanguage();
+
+// The word list may come from the server (js/question-store.js).
+questionsReady.then(function () {
+  buildQuestionOrder();
+  loadQuestion();
+});
