@@ -75,8 +75,24 @@ function unlockSpeech() {
 document.addEventListener("click", unlockSpeech, { once: true, capture: true });
 document.addEventListener("touchend", unlockSpeech, { once: true, capture: true });
 
-function speak(text) {
-  if (!("speechSynthesis" in window)) return;
+// onDone (optional) runs once when the speech ends, is cut off, or fails.
+// Some devices never report the end (no Chinese voice, speech blocked), so
+// a timer based on the sentence length makes sure it still runs.
+function speak(text, onDone) {
+  let finished = false;
+  let fallbackTimer = null;
+  function done() {
+    if (finished) return;
+    finished = true;
+    clearTimeout(fallbackTimer);
+    if (onDone) onDone();
+  }
+  if (onDone) fallbackTimer = setTimeout(done, 1500 + 450 * text.length);
+
+  if (!("speechSynthesis" in window)) {
+    if (onDone) setTimeout(done, 0);
+    return;
+  }
 
   speechSynthesis.cancel();
   const utterance = new SpeechSynthesisUtterance(text);
@@ -91,8 +107,8 @@ function speak(text) {
   // can fix from here.
 
   utterance.onstart = () => startTalking();
-  utterance.onend = () => stopTalking();
-  utterance.onerror = () => stopTalking();
+  utterance.onend = () => { stopTalking(); done(); };
+  utterance.onerror = () => { stopTalking(); done(); };
 
   speechSynthesis.speak(utterance);
 }

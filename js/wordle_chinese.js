@@ -149,6 +149,7 @@ let tutorialActive = true;
 let tutorialWordIndex = 0;
 let revealTimer = null;
 let levelUpTimer = null;
+let checkCount = 0; // bumps on every Check and every new question, so late sound callbacks can tell they're stale
 
 function changeLanguage(lang) {
   currentLanguage = lang;
@@ -227,6 +228,7 @@ function loadQuestion() {
 
   answered = false;
   selectedWords = [];
+  checkCount++;
 
   const q = questions[currentQuestion];
 
@@ -250,7 +252,7 @@ function loadQuestion() {
   updateProgress();
   createWordButtons();
   updateAnswerArea();
-  document.getElementById("message").textContent = "";
+  clearMessage();
   clearTranslation();
   hideNextButton();
 
@@ -302,6 +304,7 @@ function selectWord(button, word) {
 
   selectedWords.push(word);
   button.classList.add("selected");
+  clearMessage(); // drop a leftover "please select all words"
 
   tutorialWordClicked(word);
   updateAnswerArea();
@@ -340,6 +343,7 @@ function removeWord(index) {
   if (answered) return;
 
   selectedWords.splice(index, 1);
+  clearMessage();
   createWordButtons();
 
   const used = {};
@@ -372,34 +376,44 @@ function checkAnswer() {
 
   const correct = selectedWords.every((word, index) => word === q.answer[index]);
   answered = true;
+  const thisCheck = ++checkCount;
+
+  // Read the sentence back in the order the player put it, then play the
+  // right/wrong tone (so the two sounds don't overlap). A wrong answer stays
+  // on screen until the reading has finished, then the board resets.
+  unlockSpeech();
+  speak(selectedWords.join(""), function () {
+    if (thisCheck !== checkCount) return; // player already moved on
+    if (correct) {
+      playCorrectSound();
+      return;
+    }
+    playWrongSound();
+    setTimeout(() => {
+      if (thisCheck !== checkCount) return;
+      if (hearts <= 0) {
+        showResult();
+        return;
+      }
+      answered = false;
+      selectedWords = [];
+      createWordButtons();
+      updateAnswerArea();
+      clearMessage();
+    }, 900);
+  });
 
   if (correct) {
     xp += 10;
     score++;
     showMessage(t.correct, "correct");
     showTranslation(q);
-    playCorrectSound();
     showNextButton();
   } else {
     hearts--;
     updateHearts();
     showMessage(t.wrong, "wrong");
     clearTranslation();
-    playWrongSound();
-
-    if (hearts <= 0) {
-      setTimeout(() => {
-        showResult();
-      }, 1200);
-    } else {
-      setTimeout(() => {
-        answered = false;
-        selectedWords = [];
-        createWordButtons();
-        updateAnswerArea();
-        document.getElementById("message").textContent = "";
-      }, 1200);
-    }
   }
 
   updateXP();
@@ -434,6 +448,7 @@ function goToNextQuestion() {
 function clearAnswer() {
   if (answered || !questions.length) return;
   selectedWords = [];
+  clearMessage();
   createWordButtons();
   updateAnswerArea();
 }
@@ -450,6 +465,12 @@ function updateXP() {
 function updateProgress() {
   const percent = (currentQuestion / questions.length) * 100;
   document.getElementById("progress").style.width = percent + "%";
+}
+
+function clearMessage() {
+  const message = document.getElementById("message");
+  message.textContent = "";
+  message.className = "message";
 }
 
 function showMessage(text, type) {
